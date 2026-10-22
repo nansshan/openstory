@@ -783,7 +783,7 @@ function studioAssetContext(
   return {
     kind: 'studio_asset',
     id: asset.id,
-    label: words ? `${what} · ${words}` : what,
+    label: (words ? `${what} · ${words}` : what).slice(0, 80),
   };
 }
 
@@ -802,6 +802,7 @@ export function GenerationDetail({
   onEdit,
   editPending = false,
   onOpenHistory,
+  onAskAssistant,
 }: {
   asset: StudioGalleryAsset;
   supportMode: boolean;
@@ -821,6 +822,8 @@ export function GenerationDetail({
   editPending?: boolean;
   /** An opener for an earlier step of the edit history, if it is loaded. */
   onOpenHistory?: (id: string) => (() => void) | undefined;
+  /** Close the viewer and open the assistant with this asset (#2155); absent in support mode. */
+  onAskAssistant?: () => void;
 }) {
   const prompt = readableStudioPrompt(studioPrompt(asset));
   const references = studioShownReferences(asset);
@@ -895,10 +898,13 @@ export function GenerationDetail({
             />
           )}
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <AskAssistantButton
-            size="default"
-            context={[studioAssetContext(asset, prompt)]}
-          />
+          {onAskAssistant && (
+            <AskAssistantButton
+              size="default"
+              context={[studioAssetContext(asset, prompt)]}
+              onOpen={onAskAssistant}
+            />
+          )}
           <Button
             type="button"
             variant="outline"
@@ -1205,6 +1211,14 @@ export function StudioGallery({
                   : undefined
               }
               editPending={edit.isPending}
+              onAskAssistant={
+                supportMode
+                  ? undefined
+                  : () => {
+                      setOpenId(null);
+                      setCopied(false);
+                    }
+              }
               onOpenHistory={(id) => {
                 const target = assets.find((asset) => asset.id === id);
                 return target ? () => step(target) : undefined;
