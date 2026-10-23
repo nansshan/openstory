@@ -7,11 +7,11 @@
  *   continuity + global timestamps).
  * - A music `Input` + `AudioBufferSink` mixed through a music-only `GainNode`
  *   that applies `musicGainDb`.
- * - Clip sound (dialogue / VO) streamed like the music (#1845): an
- *   `AudioBufferSink` per clip, a second ahead of the playhead, queued as
- *   `AudioBufferSourceNode`s on the master gain (not attenuated by the music
- *   loudness gain). Nothing is decoded before it is needed, so a first play
- *   waits on its own second of sound, not the whole clip.
+ * - Clip sound (dialogue / VO): an `AudioBufferSink` per clip, decoded whole
+ *   once the playhead is within a second of the clip and queued as one
+ *   `AudioBufferSourceNode` on the master gain (not attenuated by the music
+ *   loudness gain), so each track is resampled once (#2170). The clip is
+ *   already held whole by then, so the wait is the decode, not a download.
  * - Buffering: when the next frame or the clip's sound is not in yet, the
  *   `AudioContext` is suspended — the clock and every queued node stop
  *   together — and `onBuffering` fires, instead of dropping frames or
@@ -43,6 +43,7 @@ import {
   type WrappedCanvas,
 } from 'mediabunny';
 import { createRangedSource } from './ranged-source.js';
+import { joinAudioBuffers } from './join-audio-buffers.js';
 
 import {
   ConcatenatedVideoSource,
@@ -552,9 +553,10 @@ export class SequencePlayerEngine {
   }
 
   /**
-   * Stream clip sound from `from` on, a second ahead of the playhead, the
-   * way the music streams. Clips without sound are skipped; the lane head
-   * jumps to the next clip that has some.
+   * Queue clip sound from `from` on, one clip at a time, each decoded whole
+   * (the clip is already held) and queued as one node when the playhead is
+   * a second from it. Clips without sound are skipped; the lane head jumps
+   * to the next clip that has some.
    */
   private startClipAudioLane(from: number): void {
     const generation = ++this.laneGeneration;
@@ -574,17 +576,29 @@ export class SequencePlayerEngine {
         this.laneHead = Math.max(this.laneHead, clipOffsetSeconds);
         try {
           // AudioBufferSink also decodes PCM cut WAVs (a still's takes),
-          // which have no WebCodecs decoder configuration.
-          for await (const { buffer, timestamp } of new AudioBufferSink(
-            track
-          ).buffers(Math.max(0, from - clipOffsetSeconds))) {
+          // which have no WebCodecs decoder configuration. The track is
+          // queued as one node, not chunk by chunk, so it is resampled once
+          // (why: joinAudioBuffers).
+          const chunks: WrappedAudioBuffer[] = [];
+          for await (const chunk of new AudioBufferSink(track).buffers(
+            Math.max(0, from - clipOffsetSeconds)
+          )) {
             if (stale()) return;
-            const at = clipOffsetSeconds + timestamp;
-            this.queueBuffer(buffer, at, master);
-            this.laneHead = at + buffer.duration;
-            await this.waitUntilNear(this.laneHead, stale);
-            if (stale()) return;
+            chunks.push(chunk);
           }
+          const joined = joinAudioBuffers(
+            chunks,
+            clipEnd(clipIndex) - clipOffsetSeconds
+          );
+          if (joined) {
+            const at = clipOffsetSeconds + joined.timestamp;
+            this.queueBuffer(joined.buffer, at, master);
+            this.laneHead = at + joined.buffer.duration;
+          } else {
+            this.laneHead = clipEnd(clipIndex);
+          }
+          await this.waitUntilNear(this.laneHead, stale);
+          if (stale()) return;
         } catch (err) {
           // dispose() tears the Inputs down under an in-flight decode; that
           // rejection isn't a broken track.
@@ -611,7 +625,8 @@ export class SequencePlayerEngine {
     const context = this.audioContext;
     const base = this.audioContextStartTime;
     if (!context || base === null) return;
-    // Sample-aligned, so consecutive chunks join without a click.
+    // Sample-aligned, so consecutive music chunks join without a click (the
+    // context runs at the music's rate; clip sound arrives as one node).
     const startAt =
       Math.round(context.sampleRate * (base + at - this.playbackTimeAtStart)) /
       context.sampleRate;

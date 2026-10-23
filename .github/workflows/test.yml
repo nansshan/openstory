@@ -26,6 +26,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Check changesets diffs against the merge base with the PR's target.
+          fetch-depth: 0
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -75,6 +78,14 @@ jobs:
 
       - name: Check formatting
         run: bun format:check
+
+      # A published package changed on this PR without a changeset means the
+      # release workflow never ships the change. `changeset --empty` opts out.
+      - name: Check changesets
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.base_ref }}
+        run: bun changeset:check --since "origin/$BASE"
 
       - name: Check dead code (knip)
         run: bun dead-code
