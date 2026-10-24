@@ -41,6 +41,7 @@ const EAGER_TOOLS = new Set([
   'openstory.list_locations',
   'openstory.get_location',
   'openstory.list_styles',
+  'openstory.list_models',
   'openstory.list_studio_uploads',
   'openstory.list_generated_assets',
   'openstory.plan_generation',

@@ -36,10 +36,18 @@ function keyInputs(input: unknown): Array<[string, string]> {
 
 export type ToolCardStatus = 'running' | 'waiting' | 'done' | 'error';
 
+/**
+ * The engine's answer when the model calls a lazy tool it has only seen by
+ * name: not a failure, the next step discovers the tool and calls again.
+ */
+const needsDiscovery = (result: ToolResultPart | undefined) =>
+  result?.error?.includes('must be discovered first') === true;
+
 export function toolCardStatus(
   part: ToolCallPart,
   result: ToolResultPart | undefined
 ): ToolCardStatus {
+  if (needsDiscovery(result)) return 'done';
   if (result?.state === 'error' || part.state === 'error') return 'error';
   if (result?.state === 'complete') return 'done';
   if (part.state === 'approval-requested') return 'waiting';
@@ -90,7 +98,8 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
 }) => {
   const status = toolCardStatus(part, result);
   const inputs = keyInputs(part.input);
-  const details = resultText(result);
+  // The engine's "discover it first" is bookkeeping, not a result to read.
+  const details = needsDiscovery(result) ? '' : resultText(result);
   const denied = result?.outcome === 'denied';
   const viewUri = viewForChatTool(part.name);
   return (
@@ -117,7 +126,11 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
           {toolTitle(part.name)}
         </span>
         <span className="shrink-0 text-xs text-muted-foreground">
-          {denied ? 'Denied' : STATUS_LABEL[status]}
+          {denied
+            ? 'Denied'
+            : needsDiscovery(result)
+              ? 'Loaded, called again'
+              : STATUS_LABEL[status]}
         </span>
       </div>
       {inputs.length > 0 && (
