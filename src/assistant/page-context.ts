@@ -38,8 +38,16 @@ const pageContextItemSchema = z.strictObject({
   label: z.string().min(1).max(200),
   /** The thing itself, for an item no tool can read (a draft). */
   text: z.string().max(DRAFT_TEXT_MAX).optional(),
-  /** A still of the thing (a stored media URL), attached so the model can look at it. */
-  image: z.string().max(2048).optional(),
+  /**
+   * A still of the thing, attached so the model can look at it. Only our
+   * own stored media (`/r2/<key>`, public by URL): never a URL the server
+   * would fetch on the client's say-so.
+   */
+  image: z
+    .string()
+    .max(2048)
+    .regex(/^\/r2\/(?!.*\.\.)[^?#]+$/, 'a stored media path')
+    .optional(),
 });
 export type PageContextItem = z.infer<typeof pageContextItemSchema>;
 
