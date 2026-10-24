@@ -21,6 +21,8 @@ export type AssistantDraft = {
   prompt?: string;
   /** Context the page handed over, added to the chips. */
   context?: PageContextItem[];
+  /** Questions this surface would ask first, shown ahead of the kind's starters. */
+  starters?: string[];
   /** Changes on every hand-over, so the composer remounts with the text. */
   nonce: string;
 };
@@ -143,34 +145,20 @@ export function useAssistantState(): AssistantState {
 export const getAssistantState = (): AssistantState => current();
 
 /**
- * Open the panel, with what the page wants to talk about. A call with a
- * prompt is a call to action ("Chat about this") and starts a new thread:
- * the question is about this thing, not a continuation of the last chat.
- * Context alone keeps the thread and adds its chips to it.
+ * Open the panel. With a draft it is a call to action ("Chat about this",
+ * a starter chip) and starts a new thread: the chat is about this thing,
+ * not a continuation of the last one. Bare, it only shows the panel.
  */
 export function openAssistant(draft?: Omit<AssistantDraft, 'nonce'>): void {
   if (!draft) {
     set({ open: true });
     return;
   }
-  if (draft.prompt !== undefined) {
-    set({
-      open: true,
-      threadId: generateId(),
-      draft: { ...draft, nonce: generateId() },
-      dismissedContext: new Set(),
-    });
-    return;
-  }
-  // An explicit ask for a thing the user dismissed earlier brings it back.
-  const dismissed = new Set(current().dismissedContext);
-  for (const item of draft.context ?? []) {
-    dismissed.delete(`${item.kind}:${item.id}`);
-  }
   set({
     open: true,
-    draft: { ...draft, nonce: current().draft?.nonce ?? generateId() },
-    dismissedContext: dismissed,
+    threadId: generateId(),
+    draft: { ...draft, nonce: generateId() },
+    dismissedContext: new Set(),
   });
 }
 

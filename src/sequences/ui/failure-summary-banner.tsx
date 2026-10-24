@@ -173,8 +173,9 @@ export const FailureSummaryBanner: React.FC<FailureSummaryBannerProps> = ({
                 onClick={() =>
                   openAssistant({
                     context: [],
-                    prompt:
-                      'Why did these fail, and retry what can be retried.',
+                    starters: [
+                      'Why did these fail, and retry what can be retried',
+                    ],
                   })
                 }
               >
@@ -205,8 +206,9 @@ export const FailureSummaryBanner: React.FC<FailureSummaryBannerProps> = ({
                 onClick={() =>
                   openAssistant({
                     context: [],
-                    prompt:
-                      'Why did these fail, and retry what can be retried.',
+                    starters: [
+                      'Why did these fail, and retry what can be retried',
+                    ],
                   })
                 }
               >

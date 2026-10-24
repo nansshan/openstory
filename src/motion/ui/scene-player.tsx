@@ -503,8 +503,6 @@ export const ScenePlayer: React.FC<ScenePlayerProps> = ({
                   onClick={() =>
                     openAssistant({
                       context: [],
-                      prompt:
-                        'Give me three alternative framings for this shot.',
                     })
                   }
                 >
@@ -551,8 +549,6 @@ export const ScenePlayer: React.FC<ScenePlayerProps> = ({
                   onClick={() =>
                     openAssistant({
                       context: [],
-                      prompt:
-                        'Give me three alternative framings for this shot.',
                     })
                   }
                 >

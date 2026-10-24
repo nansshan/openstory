@@ -497,7 +497,6 @@ const SceneGroupComponent: React.FC<SceneGroupProps> = ({
               onClick={() =>
                 openAssistant({
                   context: [{ kind: 'scene', id: scene.id, label: sceneLabel }],
-                  prompt: 'How can I make this scene land harder?',
                 })
               }
             >

@@ -26,6 +26,13 @@ interface AppLayoutProps extends React.HTMLAttributes<HTMLElement> {}
 
 /** Starters for an empty assistant thread; the page decides them (#2155). */
 function suggestionsFor(kinds: ReadonlySet<string>): string[] {
+  if (kinds.has('selection')) {
+    return [
+      'Rewrite this passage so it plays on screen',
+      'Tighten this passage without losing the beat',
+      'Give me three ways this passage could go',
+    ];
+  }
   if (kinds.has('studio_asset')) {
     return [
       'How can I make this image more striking?',
@@ -98,13 +105,20 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   // Starters follow everything the composer shows: the route, what a page
   // registered (the Studio viewer), and what a button handed over.
   const { extraContext, draft } = useAssistantState();
-  const suggestions = suggestionsFor(
-    new Set(
-      [...pageContext, ...extraContext.values(), ...(draft?.context ?? [])].map(
-        (item) => item.kind
+  // A surface's own first question (the failure banner's "why did these
+  // fail?") goes ahead of the kind's.
+  const suggestions = [
+    ...(draft?.starters ?? []),
+    ...suggestionsFor(
+      new Set(
+        [
+          ...pageContext,
+          ...extraContext.values(),
+          ...(draft?.context ?? []),
+        ].map((item) => item.kind)
       )
-    )
-  );
+    ),
+  ];
   return (
     <AuthGateProvider>
       <UploadRightsGateProvider>

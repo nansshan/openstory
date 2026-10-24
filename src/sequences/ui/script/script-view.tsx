@@ -1741,14 +1741,20 @@ export const ScriptView: FC<{
                 // before the click reads it.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
+                  // A selection is a chip, not a request: the user says what
+                  // to do with it.
                   const selected = document.getSelection()?.toString().trim();
                   openAssistant({
-                    context: [],
-                    prompt: selected
-                      ? `Rewrite this passage:\n\`\`\`\n${selected}\n\`\`\``
-                      : isEditing
-                        ? 'How can I make this script more visual?'
-                        : 'Help me write a 30-second script',
+                    context: selected
+                      ? [
+                          {
+                            kind: 'selection',
+                            id: 'selection',
+                            label: 'Selected passage',
+                            text: selected.slice(0, 50_000),
+                          },
+                        ]
+                      : [],
                   });
                 }}
               >

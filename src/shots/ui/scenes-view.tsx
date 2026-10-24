@@ -1840,10 +1840,6 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
                         onClick={() =>
                           openAssistant({
                             context: [],
-                            prompt:
-                              effectiveView === 'script'
-                                ? 'How can I make this script more visual?'
-                                : 'How can I make this sequence better?',
                           })
                         }
                       >

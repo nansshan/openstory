@@ -126,11 +126,7 @@ export function StudioView({ activity, search, navigate }: StudioViewProps) {
           maxWidth="wide"
           actions={
             supportMode ? undefined : (
-              <AskAssistantButton
-                variant="ghost"
-                context={[]}
-                prompt="What can I make here?"
-              />
+              <AskAssistantButton variant="ghost" context={[]} />
             )
           }
         >

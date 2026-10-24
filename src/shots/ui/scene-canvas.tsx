@@ -269,7 +269,6 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({
                           },
                         ]
                       : [],
-                    prompt: 'This shot feels wrong, fix the pacing.',
                   });
                 }}
               >

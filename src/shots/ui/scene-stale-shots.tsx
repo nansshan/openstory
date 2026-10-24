@@ -184,7 +184,7 @@ export const SceneStaleShots: React.FC<SceneStaleShotsProps> = ({
               id: shot.id,
               label: `Shot ${numberByShotId.get(shot.id) ?? shot.shotNumber ?? 0}`,
             })),
-            prompt: 'What changed and what needs regenerating?',
+            starters: ['What changed and what needs regenerating?'],
           })
         }
       >

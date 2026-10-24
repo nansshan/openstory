@@ -115,16 +115,18 @@ while it is open; the store's `extraContext` joins the chips and leaves
 on unmount. Entry points: one "Chat about this" control per surface,
 in that surface's existing toolbar or menu (`AskAssistantButton`, or a
 plain button or menu row calling `openAssistant` where
-the tree also renders in stories without an `AuthGateProvider`). Each is a
-call to action, so `openAssistant` with a prompt starts a new thread: the
-question is about this thing, not a continuation of the last chat. Each
-carries a creative-direction line, "How can I make this shot more
-interesting?" and the like, placed in the composer, never sent, with a
-chip only for a thing the URL does not name. The empty gallery, empty
-libraries and empty sequence list ask "What do you want to make?" with
-starter chips; the empty thread asks "What do you want to do?" with
-starters that follow the context kinds (`suggestionsFor` in
-`app-layout.tsx`).
+the tree also renders in stories without an `AuthGateProvider`). One rule
+for every one of them: `openAssistant` with a draft starts a fresh thread
+with the thing as a chip and nothing typed. The chat is about this thing,
+not a continuation of the last one, and the user says what they want. A
+chip is passed only for a thing the URL does not name; a text selection in
+the script editor becomes a `selection` chip carrying its text. A surface
+with one obvious first question (the failure banner, the stale-shots
+notice) passes it as `starters`, shown ahead of the kind's. The empty
+gallery, empty libraries and empty sequence list ask "What do you want to
+make?" with starter chips; the empty thread asks "What do you want to do?"
+with starters that follow the context kinds (`suggestionsFor` in
+`app-layout.tsx`). A starter chip the user clicks is sent as typed.
 
 ## Shell
 

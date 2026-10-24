@@ -869,6 +869,7 @@ export function GenerationDetail({
   const prompt = readableStudioPrompt(studioPrompt(asset));
   const references = studioShownReferences(asset);
   const reuse = studioReuse(asset);
+  const editSource = studioPrimaryOutput(asset);
   const creator = [asset.creatorName, asset.creatorEmail]
     .filter(Boolean)
     .join(' · ');
@@ -968,6 +969,38 @@ export function GenerationDetail({
               {asset.status === 'failed' ? 'Try again' : 'Use again'}
             </Button>
           )}
+          {/* Edit = back to the prompt box with this image as the reference
+              and an empty prompt; the user says what changes. */}
+          {onReuse &&
+            editSource &&
+            asset.activity === 'image' &&
+            asset.status === 'completed' && (
+              <Button
+                type="button"
+                variant="outline"
+                className="pointer-coarse:h-11"
+                onClick={() =>
+                  onReuse({
+                    prompt: '',
+                    aspectRatio: studioAspectRatio(asset),
+                    resolution: null,
+                    imageModel: null,
+                    videoModel: null,
+                    duration: null,
+                    mode: null,
+                    generateAudio: null,
+                    draft: null,
+                    referenceImages: [editSource.url],
+                    referenceVideos: [],
+                    referenceAudio: [],
+                    startImageUrl: null,
+                    endImageUrl: null,
+                  })
+                }
+              >
+                Edit image
+              </Button>
+            )}
           {onRenderAtQuality &&
             asset.draftTaskId &&
             asset.status === 'completed' &&

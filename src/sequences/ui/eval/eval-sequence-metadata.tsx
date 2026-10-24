@@ -145,7 +145,6 @@ export const SequenceRowMenu: React.FC<{
                   label: sequence.title || 'Untitled Sequence',
                 },
               ],
-              prompt: 'What is the weakest moment in this cut?',
             })
           }
         >

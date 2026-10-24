@@ -1,7 +1,7 @@
 /**
- * "Chat about this" (#2155): opens the panel with this thing as context
- * and, when given, a starting line in the composer. A text button, as the
- * repo's labelled buttons are.
+ * "Chat about this" (#2155): opens a fresh thread with this thing as
+ * context and nothing typed; the empty thread's starters follow the
+ * context. A text button, as the repo's labelled buttons are.
  */
 
 import { useAuthGate } from '@/platform/ui/auth/auth-gate-provider';
@@ -11,12 +11,11 @@ import { openAssistant } from './assistant-store';
 
 export const AskAssistantButton: React.FC<{
   context: PageContextItem[];
-  prompt?: string;
   size?: 'sm' | 'default';
   variant?: 'outline' | 'ghost';
   /** Runs first, before the panel opens (the Studio viewer resets its copied state). */
   onOpen?: () => void;
-}> = ({ context, prompt, size = 'sm', variant = 'outline', onOpen }) => {
+}> = ({ context, size = 'sm', variant = 'outline', onOpen }) => {
   const { requireAuth } = useAuthGate();
   return (
     <Button
@@ -26,7 +25,7 @@ export const AskAssistantButton: React.FC<{
       onClick={() => {
         if (!requireAuth()) return;
         onOpen?.();
-        openAssistant({ context, prompt });
+        openAssistant({ context });
       }}
     >
       Chat about this

@@ -1882,15 +1882,7 @@ export function StudioComposer({
             {draft.isPending ? 'Drafting…' : 'Draft prompt'}
           </Button>
         )}
-        <AskAssistantButton
-          variant="ghost"
-          context={[]}
-          prompt={
-            trimmed
-              ? `Make this prompt more cinematic:\n\n${trimmed}`
-              : 'Help me write a prompt for '
-          }
-        />
+        <AskAssistantButton variant="ghost" context={[]} />
 
         <div className="ml-auto flex items-center gap-2">
           {hasContent && (

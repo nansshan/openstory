@@ -408,7 +408,6 @@ export const EvalView: React.FC<EvalViewProps> = ({
                   onClick={() =>
                     openAssistant({
                       context: [],
-                      prompt: 'Help me write a 30-second script',
                     })
                   }
                 >
