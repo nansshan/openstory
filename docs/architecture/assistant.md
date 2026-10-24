@@ -128,6 +128,15 @@ make?" with starter chips; the empty thread asks "What do you want to do?"
 with starters that follow the context kinds (`suggestionsFor` in
 `app-layout.tsx`). A starter chip the user clicks is sent as typed.
 
+A chip may carry `image`, a stored media URL of the thing (the Studio
+chip's still or poster). The server puts each one on the last user message
+as an image part (`withContextImages` in `assistant-chat.ts`, at most four),
+through `toVisionImageSource`: a CDN URL stays a URL, local media becomes
+bytes. That is the only way a picture reaches the model in chat: a tool
+result cannot carry one, because the OpenRouter adapter flattens a tool
+message to text, so `get_shot_frames` is blind here. The system line says
+the picture is attached. A shot chip carries no still yet.
+
 ## Shell
 
 `AssistantPanel` is mounted once in `AppLayout`, right of the page on

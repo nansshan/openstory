@@ -14,7 +14,10 @@ import {
   toServerSentEventsResponse,
   toolDefinition,
   type ChatMiddleware,
+  type ImagePart,
+  type ModelMessage,
   type TokenUsage,
+  type UIMessage,
 } from '@tanstack/ai';
 import { reconstructChat, withPersistence } from '@tanstack/ai-persistence';
 import { z } from 'zod';
@@ -40,6 +43,56 @@ import {
   type PageContextItem,
 } from '../page-context';
 import { REPLACE_UNSAVED_TEXT } from '../unsaved-text-tool';
+import { toVisionImageSource } from '@/platform/server/storage/external-url';
+
+/** How many context stills ride on one message; each costs vision tokens. */
+const MAX_CONTEXT_IMAGES = 4;
+
+type ChatMessage = UIMessage | ModelMessage;
+
+/**
+ * The still of each context item that has one goes on the last user
+ * message as an image part, so the model can look at what the user is
+ * looking at (#2155). A URL the provider can fetch (the CDN) stays a URL;
+ * local media becomes bytes. A tool result cannot carry a picture: the
+ * OpenRouter adapter flattens a tool message to text.
+ */
+async function withContextImages(
+  messages: Array<ChatMessage>,
+  items: PageContextItem[]
+): Promise<Array<ChatMessage>> {
+  const urls = items.flatMap((item) => (item.image ? [item.image] : []));
+  const last = messages.findLastIndex((m) => m.role === 'user');
+  if (urls.length === 0 || last === -1) return messages;
+  const parts: ImagePart[] = await Promise.all(
+    urls.slice(0, MAX_CONTEXT_IMAGES).map(async (url) => {
+      const source = await toVisionImageSource(url);
+      return {
+        type: 'image' as const,
+        source:
+          source.type === 'url'
+            ? { type: 'url' as const, value: source.value }
+            : {
+                type: 'data' as const,
+                value: source.value,
+                mimeType: source.mimeType,
+              },
+      };
+    })
+  );
+  return messages.map((message, index): ChatMessage => {
+    if (index !== last) return message;
+    // A UI message carries parts; a model message carries content.
+    if ('parts' in message) {
+      return { ...message, parts: [...message.parts, ...parts] };
+    }
+    const content =
+      typeof message.content === 'string'
+        ? [{ type: 'text' as const, content: message.content }]
+        : (message.content ?? []);
+    return { ...message, content: [...content, ...parts] };
+  });
+}
 import { chatModelFor } from '../chat-model';
 import { assistantTools } from './assistant-tools';
 import { threadTitleFrom } from './db/assistant';
@@ -298,7 +351,7 @@ export async function handleAssistantChat(
   ];
   const stream = chat({
     adapter: createAdapter(model, llmKey),
-    messages: params.messages,
+    messages: await withContextImages(params.messages, pageContext.data),
     systemPrompts: systemPrompts(
       caller,
       pageContext.data,

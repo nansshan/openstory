@@ -23,11 +23,11 @@ export const AssistantContextItem: React.FC<{
   // The store is outside React; this is the one place a page syncs into it.
   // Keyed on the fields, not the object: a page that builds the item each
   // render must not re-register each render.
-  const { kind, id, label, text } = item;
+  const { kind, id, label, text, image } = item;
   useEffect(() => {
-    setAssistantExtraContext(key, { kind, id, label, text });
+    setAssistantExtraContext(key, { kind, id, label, text, image });
     return () => setAssistantExtraContext(key, null);
-  }, [key, kind, id, label, text]);
+  }, [key, kind, id, label, text, image]);
   // The page passes a fresh closure each render; the store keeps one
   // function that calls the latest.
   const latest = useRef(onReplace);

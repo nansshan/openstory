@@ -821,10 +821,13 @@ function studioAssetContext(
 ): PageContextItem {
   const what = asset.activity === 'video' ? 'Clip' : 'Image';
   const words = prompt.trim().split(/\s+/).slice(0, 6).join(' ');
+  // The still (a clip's poster) rides along so the model can look at it.
+  const still = studioPosterOutput(asset)?.url;
   return {
     kind: 'studio_asset',
     id: asset.id,
     label: (words ? `${what} · ${words}` : what).slice(0, 80),
+    ...(still ? { image: still } : {}),
   };
 }
 
