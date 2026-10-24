@@ -273,7 +273,7 @@ export const SceneCanvas: React.FC<SceneCanvasProps> = ({
                   });
                 }}
               >
-                Ask the assistant
+                Chat about this
               </Button>
               <SequenceDownloadMenu
                 sequenceExport={sequenceExport}

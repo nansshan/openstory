@@ -149,7 +149,7 @@ export const SequenceRowMenu: React.FC<{
             })
           }
         >
-          Ask the assistant
+          Chat about this
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={archive.isPending}

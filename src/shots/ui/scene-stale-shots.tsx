@@ -188,7 +188,7 @@ export const SceneStaleShots: React.FC<SceneStaleShotsProps> = ({
           })
         }
       >
-        Ask the assistant
+        Chat about this
       </Button>
       {onUpdateAll && staleShots.length > 0 && (
         <>

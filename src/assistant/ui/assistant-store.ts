@@ -1,6 +1,6 @@
 /**
  * The assistant's shell state (#2155): open or closed, which thread, and
- * what a page handed it ("Ask about this"). A module store rather than a
+ * what a page handed it ("Chat about this"). A module store rather than a
  * provider so any button anywhere can call `openAssistant()` with no tree
  * plumbing, and the panel in the app layout reads it with
  * `useSyncExternalStore`. Open state and the thread id survive a reload
@@ -41,6 +41,8 @@ export type AssistantState = {
    * cannot see these, so the page says so through `AssistantContextItem`.
    */
   extraContext: ReadonlyMap<string, PageContextItem>;
+  /** How to replace a draft's text, by the same key; `replace_unsaved_text` calls it. */
+  draftEditors: ReadonlyMap<string, (text: string) => void>;
 };
 
 const STORAGE_KEY = 'openstory.assistant';
@@ -94,6 +96,7 @@ const SERVER_STATE: AssistantState = {
   draft: null,
   dismissedContext: new Set(),
   extraContext: new Map(),
+  draftEditors: new Map(),
 };
 
 let state: AssistantState | null = null;
@@ -136,14 +139,27 @@ export function useAssistantState(): AssistantState {
   return useSyncExternalStore(subscribe, current, () => SERVER_STATE);
 }
 
+/** The state outside React, for a tool executor. */
+export const getAssistantState = (): AssistantState => current();
+
 /**
- * Open the panel, with what the page wants to talk about. The draft stays
- * in the store until the thread changes: its context is chips for the
- * whole conversation, its prompt the composer's starting text.
+ * Open the panel, with what the page wants to talk about. A call with a
+ * prompt is a call to action ("Chat about this") and starts a new thread:
+ * the question is about this thing, not a continuation of the last chat.
+ * Context alone keeps the thread and adds its chips to it.
  */
 export function openAssistant(draft?: Omit<AssistantDraft, 'nonce'>): void {
   if (!draft) {
     set({ open: true });
+    return;
+  }
+  if (draft.prompt !== undefined) {
+    set({
+      open: true,
+      threadId: generateId(),
+      draft: { ...draft, nonce: generateId() },
+      dismissedContext: new Set(),
+    });
     return;
   }
   // An explicit ask for a thing the user dismissed earlier brings it back.
@@ -151,14 +167,9 @@ export function openAssistant(draft?: Omit<AssistantDraft, 'nonce'>): void {
   for (const item of draft.context ?? []) {
     dismissed.delete(`${item.kind}:${item.id}`);
   }
-  // A new prompt remounts the composer; context alone keeps what was typed.
-  const nonce =
-    draft.prompt !== undefined
-      ? generateId()
-      : (current().draft?.nonce ?? generateId());
   set({
     open: true,
-    draft: { ...draft, nonce },
+    draft: { ...draft, nonce: current().draft?.nonce ?? generateId() },
     dismissedContext: dismissed,
   });
 }
@@ -196,6 +207,17 @@ export function setAssistantExtraContext(
   if (item) next.set(key, item);
   else next.delete(key);
   set({ extraContext: next });
+}
+
+/** The editor behind a draft context item, present while the page can take text. */
+export function setAssistantDraftEditor(
+  key: string,
+  replace: ((text: string) => void) | null
+): void {
+  const next = new Map(current().draftEditors);
+  if (replace) next.set(key, replace);
+  else next.delete(key);
+  set({ draftEditors: next });
 }
 
 export function dismissAssistantContext(item: PageContextItem): void {

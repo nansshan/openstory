@@ -412,7 +412,7 @@ export const EvalView: React.FC<EvalViewProps> = ({
                     })
                   }
                 >
-                  Ask the assistant
+                  Chat about this
                 </Button>
               </div>
             ) : undefined

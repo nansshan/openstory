@@ -112,10 +112,12 @@ context and a prompt with `openAssistant({ context, prompt })`.
 Context the URL does not name (the Studio viewer's open asset) is held in
 component state, so the page says so by rendering `AssistantContextItem`
 while it is open; the store's `extraContext` joins the chips and leaves
-on unmount. Entry points: one "Ask the assistant" control per surface,
+on unmount. Entry points: one "Chat about this" control per surface,
 in that surface's existing toolbar or menu (`AskAssistantButton`, or a
 plain button or menu row calling `openAssistant` where
-the tree also renders in stories without an `AuthGateProvider`). Each
+the tree also renders in stories without an `AuthGateProvider`). Each is a
+call to action, so `openAssistant` with a prompt starts a new thread: the
+question is about this thing, not a continuation of the last chat. Each
 carries a creative-direction line, "How can I make this shot more
 interesting?" and the like, placed in the composer, never sent, with a
 chip only for a thing the URL does not name. The empty gallery, empty
@@ -186,9 +188,23 @@ in `getMcpViewFn`.
 
 A `PageContextItem` may carry `text` (up to 50,000 characters) for a thing
 no tool can read. The new-sequence page renders an `AssistantContextItem`
-of kind `draft_script` with the script being typed, so "tighten this" works
-before anything is saved; the system line quotes the text in a fence and
-says it is the user's work, not instructions.
+of kind `draft_script` with the script being typed (an empty editor too, so
+"write me a script" has a place to land), and the Studio composer one of
+kind `draft_prompt` with its prompt, so "tighten this" works before
+anything is saved; the system line quotes the text in a fence and says it
+is the user's work, not instructions.
+
+Writing it back is the one tool that is the assistant's and not the MCP
+server's: `replace_unsaved_text` (`src/assistant/unsaved-text-tool.ts`),
+with `{ kind, text }`. The server adds its definition to the run only when
+the page reports a draft (`hasDraft`); the browser executes it
+(`useChat({ tools })` in `use-assistant-chat.ts`) through the `onReplace`
+the page's `AssistantContextItem` registered in the store
+(`draftEditors`), so the editor shows the text at once, the way Enhance
+writes it. On the script page that goes through the Enhance undo
+(`previousScriptRef`), so Undo restores what was there. The exception to
+"add an MCP tool" holds because the text lives only in the browser; a
+saved thing still gets an MCP tool.
 
 ## The Studio viewer
 

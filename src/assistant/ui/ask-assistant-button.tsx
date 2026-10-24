@@ -1,5 +1,5 @@
 /**
- * "Ask the assistant" (#2155): opens the panel with this thing as context
+ * "Chat about this" (#2155): opens the panel with this thing as context
  * and, when given, a starting line in the composer. A text button, as the
  * repo's labelled buttons are.
  */
@@ -29,7 +29,7 @@ export const AskAssistantButton: React.FC<{
         openAssistant({ context, prompt });
       }}
     >
-      Ask the assistant
+      Chat about this
     </Button>
   );
 };

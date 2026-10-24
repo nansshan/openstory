@@ -501,7 +501,7 @@ const SceneGroupComponent: React.FC<SceneGroupProps> = ({
                 })
               }
             >
-              Ask the assistant
+              Chat about this
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

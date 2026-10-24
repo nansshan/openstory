@@ -178,7 +178,7 @@ export const FailureSummaryBanner: React.FC<FailureSummaryBannerProps> = ({
                   })
                 }
               >
-                Ask the assistant
+                Chat about this
               </Button>
             </div>
           ) : (
@@ -210,7 +210,7 @@ export const FailureSummaryBanner: React.FC<FailureSummaryBannerProps> = ({
                   })
                 }
               >
-                Ask the assistant
+                Chat about this
               </Button>
             </div>
           )}

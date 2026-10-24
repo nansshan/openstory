@@ -1847,7 +1847,7 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
                           })
                         }
                       >
-                        Ask the assistant
+                        Chat about this
                       </Button>
                       <CopyScriptButton sequenceId={sequenceId} />
                       <SequenceDownloadMenu

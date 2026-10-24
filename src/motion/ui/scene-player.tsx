@@ -508,7 +508,7 @@ export const ScenePlayer: React.FC<ScenePlayerProps> = ({
                     })
                   }
                 >
-                  Ask the assistant
+                  Chat about this
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => void handleCopyImageUrl()}>
                   <Link className="h-4 w-4" />
@@ -556,7 +556,7 @@ export const ScenePlayer: React.FC<ScenePlayerProps> = ({
                     })
                   }
                 >
-                  Ask the assistant
+                  Chat about this
                 </DropdownMenuItem>
                 {currentShot.image?.url && (
                   <DropdownMenuItem onClick={() => void handleCopyImageUrl()}>

@@ -113,6 +113,7 @@ import {
 } from '@/models/aspect-ratios';
 import { VoiceInputButton } from '@/ui/voice/voice-input-button';
 import { AskAssistantButton } from '@/assistant/ui/ask-assistant-button';
+import { AssistantContextItem } from '@/assistant/ui/assistant-context-item';
 import { useEditorDictation } from '@/ui/use-dictation';
 import { pickShufflePrompt, studioShufflePrompts } from './prompt-shuffle';
 import { parseStudioPaste } from './paste-import';
@@ -1355,6 +1356,16 @@ export function StudioComposer({
       onDrop={onDrop}
       onPasteCapture={onPasteCapture}
     >
+      {/* The prompt being typed reaches the assistant, and it writes back (#2155). */}
+      <AssistantContextItem
+        item={{
+          kind: 'draft_prompt',
+          id: 'draft',
+          label: 'Unsaved prompt',
+          text: prompt.slice(0, 50_000),
+        }}
+        onReplace={setPrompt}
+      />
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto md:flex-row">
         {showTiles && (
           <div

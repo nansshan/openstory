@@ -54,6 +54,13 @@ function suggestionsFor(kinds: ReadonlySet<string>): string[] {
       'What is missing from this story?',
     ];
   }
+  if (kinds.has('draft_prompt')) {
+    return [
+      'Make this prompt more cinematic',
+      'Rewrite this prompt with a clear subject, light and lens',
+      'What would make this image more striking?',
+    ];
+  }
   if (kinds.has('sequence')) {
     return [
       'How can I make this sequence better?',

@@ -1537,14 +1537,21 @@ export const ScriptView: FC<{
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* A script nothing has saved yet reaches the assistant as text (#2155). */}
-      {!isEditing && scriptValue.trim() !== '' && (
+      {/* A script nothing has saved yet reaches the assistant as text, and
+          the assistant writes back the way Enhance does: Undo restores (#2155).
+          An empty editor registers too, so "write me a script" has a place to land. */}
+      {!isEditing && (
         <AssistantContextItem
           item={{
             kind: 'draft_script',
             id: 'draft',
             label: 'Unsaved script',
             text: scriptValue.slice(0, 50_000),
+          }}
+          onReplace={(text) => {
+            previousScriptRef.current = scriptValue;
+            setScript(text);
+            setEnhance('canUndoEnhance', true);
           }}
         />
       )}
@@ -1745,7 +1752,7 @@ export const ScriptView: FC<{
                   });
                 }}
               >
-                Ask the assistant
+                Chat about this
               </Button>
               {enhanceControls}
               <VoiceInputButton

@@ -12,6 +12,7 @@ import {
   maxIterations,
   resumeServerSentEventsResponse,
   toServerSentEventsResponse,
+  toolDefinition,
   type ChatMiddleware,
   type TokenUsage,
 } from '@tanstack/ai';
@@ -34,9 +35,11 @@ import { ulidSchema } from '@/platform/server/schemas/id.schemas';
 import { ValidationError } from '@/platform/errors';
 import {
   describePageContext,
+  hasDraft,
   pageContextSchema,
   type PageContextItem,
 } from '../page-context';
+import { REPLACE_UNSAVED_TEXT } from '../unsaved-text-tool';
 import { chatModelFor } from '../chat-model';
 import { assistantTools } from './assistant-tools';
 import { threadTitleFrom } from './db/assistant';
@@ -302,7 +305,11 @@ export async function handleAssistantChat(
       llmKey.via === 'openrouter'
     ),
     modelOptions: webSearchFor(llmKey.via),
-    tools: assistantTools(),
+    // A draft on the page adds the one browser-executed tool: the server
+    // advertises the definition, the client's `useChat` runs it.
+    tools: hasDraft(pageContext.data)
+      ? [...assistantTools(), toolDefinition(REPLACE_UNSAVED_TEXT)]
+      : assistantTools(),
     lazyToolsConfig: { includeDescription: 'first-sentence' },
     context: toolContext(caller),
     threadId: thread.id,

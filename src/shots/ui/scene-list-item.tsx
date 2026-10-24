@@ -304,7 +304,7 @@ const SceneListItemComponent: React.FC<SceneListItemProps> = ({
                   });
                 }}
               >
-                Ask the assistant
+                Chat about this
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled={!onMoveUp} onClick={onMoveUp}>
