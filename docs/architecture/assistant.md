@@ -190,7 +190,7 @@ A `PageContextItem` may carry `text` (up to 50,000 characters) for a thing
 no tool can read. The new-sequence page renders an `AssistantContextItem`
 of kind `draft_script` with the script being typed (an empty editor too, so
 "write me a script" has a place to land), and the Studio composer one of
-kind `draft_prompt` with its prompt, so "tighten this" works before
+kind `draft_prompt` with its prompt (a rewrite there offers Undo on a toast), so "tighten this" works before
 anything is saved; the system line quotes the text in a fence and says it
 is the user's work, not instructions.
 

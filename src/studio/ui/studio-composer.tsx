@@ -1364,7 +1364,14 @@ export function StudioComposer({
           label: 'Unsaved prompt',
           text: prompt.slice(0, 50_000),
         }}
-        onReplace={setPrompt}
+        onReplace={(text) => {
+          // The model wrote over what the user typed; keep the way back.
+          const previous = prompt;
+          setPrompt(text);
+          toast('The assistant rewrote the prompt', {
+            action: { label: 'Undo', onClick: () => setPrompt(previous) },
+          });
+        }}
       />
       <div className="flex min-h-0 flex-col gap-3 overflow-y-auto md:flex-row">
         {showTiles && (
