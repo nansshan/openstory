@@ -203,7 +203,6 @@ export const BillingGateDialog: React.FC<BillingGateDialogProps> = ({
             {inSequence && (
               <AskAssistantButton
                 context={[]}
-                prompt="What will finishing this sequence cost?"
                 variant="ghost"
                 onOpen={() => onOpenChange(false)}
               />

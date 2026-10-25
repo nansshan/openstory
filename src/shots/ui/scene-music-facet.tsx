@@ -487,10 +487,7 @@ export const SceneMusicFacet: React.FC<SceneMusicFacetProps> = ({
       {/* User score inject (#1108) — an uploaded track lands in the
           user-upload primary slot; generated alternates stay switchable. */}
       <div className="flex flex-wrap justify-center gap-2">
-        <AskAssistantButton
-          context={[]}
-          prompt="How could the music lift this sequence more?"
-        />
+        <AskAssistantButton context={[]} />
         <UploadMediaButton
           label="Upload Audio"
           pendingLabel="Uploading…"

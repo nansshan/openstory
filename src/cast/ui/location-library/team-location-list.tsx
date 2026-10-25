@@ -40,14 +40,7 @@ export const TeamLocationList: React.FC<{
             ? 'Try another search.'
             : 'Make one with New location, or analyse a sequence.'
         }
-        action={
-          q ? undefined : (
-            <AskAssistantButton
-              context={[]}
-              prompt="Create a location from a photo I describe"
-            />
-          )
-        }
+        action={q ? undefined : <AskAssistantButton context={[]} />}
       />
     );
   }

@@ -372,11 +372,7 @@ export const CharacterVoiceSection: React.FC<{
                 {cancel.isPending ? 'Cancelling…' : 'Cancel'}
               </Button>
             ) : null}
-            <AskAssistantButton
-              size="default"
-              context={[]}
-              prompt="What voice would suit them?"
-            />
+            <AskAssistantButton size="default" context={[]} />
             {seedVoices && (
               <div className="flex flex-col gap-1">
                 <ToggleGroup

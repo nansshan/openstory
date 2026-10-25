@@ -344,7 +344,6 @@ export function AddCreditsDialog() {
           {inSequence && (
             <AskAssistantButton
               context={[]}
-              prompt="What will finishing this sequence cost?"
               variant="ghost"
               size="default"
               onOpen={() => onOpenChange(false)}

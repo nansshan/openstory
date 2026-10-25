@@ -231,10 +231,7 @@ export const ModelCatalogView: FC<ModelCatalogViewProps> = ({
               )}
             </InputGroup>
           </form>
-          <AskAssistantButton
-            context={[]}
-            prompt="Which model fits a dialogue-heavy sequence?"
-          />
+          <AskAssistantButton context={[]} />
         </div>
 
         <ToggleGroup

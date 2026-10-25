@@ -252,11 +252,7 @@ export const ElementDetailView: React.FC<ElementDetailViewProps> = ({
               <Trash2 className="h-4 w-4" />
               Delete
             </Button>
-            <AskAssistantButton
-              size="default"
-              context={[]}
-              prompt={`Rename the token ${element.token} across the script.`}
-            />
+            <AskAssistantButton size="default" context={[]} />
           </div>
 
           <dl className="space-y-4">

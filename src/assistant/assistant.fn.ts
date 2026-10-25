@@ -98,5 +98,14 @@ export const callMcpReadToolFn = createServerFn({ method: 'POST' })
       origin: new URL(request.url).origin,
       request,
     };
-    return tool.execute(data.arguments, { context: toolContext(caller) });
+    // The envelope is a CallToolResult passed through as is; the view reads
+    // its structuredContent. Parsed as JSON so Start sees one serializable
+    // type instead of the union of every tool's output.
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the union of every tool's input narrows to never; the tool validates its own input
+    const result: unknown = await tool.execute(data.arguments as never, {
+      context: toolContext(caller),
+      // A view call runs outside a chat run: nothing listens for events.
+      emitCustomEvent: () => {},
+    });
+    return z.json().parse(result);
   });

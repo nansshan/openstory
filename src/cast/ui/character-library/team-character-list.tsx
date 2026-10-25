@@ -42,12 +42,7 @@ export const TeamCharacterList: React.FC<{
         icon={<User className="h-12 w-12" />}
         title="No characters yet"
         description="Make one with New character, or analyse a sequence."
-        action={
-          <AskAssistantButton
-            context={[]}
-            prompt="Create a character from a photo I describe"
-          />
-        }
+        action={<AskAssistantButton context={[]} />}
       />
     );
   }

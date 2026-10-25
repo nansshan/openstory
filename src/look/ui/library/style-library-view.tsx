@@ -143,10 +143,7 @@ export const StyleLibraryView: FC<StyleLibraryViewProps> = ({
               </InputGroupAddon>
             )}
           </InputGroup>
-          <AskAssistantButton
-            context={[]}
-            prompt="Which look would give this story more mood?"
-          />
+          <AskAssistantButton context={[]} />
         </div>
 
         {groups.length > 1 && (
@@ -184,10 +181,7 @@ export const StyleLibraryView: FC<StyleLibraryViewProps> = ({
           </EmptyHeader>
           {!searchQuery && (
             <EmptyContent>
-              <AskAssistantButton
-                context={[]}
-                prompt="Design a style for a moody thriller"
-              />
+              <AskAssistantButton context={[]} />
             </EmptyContent>
           )}
         </Empty>

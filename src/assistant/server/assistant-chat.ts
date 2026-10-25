@@ -62,7 +62,7 @@ async function withContextImages(
   items: PageContextItem[]
 ): Promise<Array<ChatMessage>> {
   const urls = items.flatMap((item) => (item.image ? [item.image] : []));
-  const last = messages.findLastIndex((m) => m.role === 'user');
+  const last = messages.map((m) => m.role).lastIndexOf('user');
   if (urls.length === 0 || last === -1) return messages;
   const parts: ImagePart[] = await Promise.all(
     urls.slice(0, MAX_CONTEXT_IMAGES).map(async (url) => {

@@ -264,10 +264,7 @@ function ApiKeySettingsContent({
             covers everything — script analysis included.
           </CardDescription>
           <CardAction>
-            <AskAssistantButton
-              context={[]}
-              prompt="Explain how billing works with my own keys."
-            />
+            <AskAssistantButton context={[]} />
           </CardAction>
         </CardHeader>
 

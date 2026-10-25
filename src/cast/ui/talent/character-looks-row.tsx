@@ -238,7 +238,6 @@ export const CharacterLooksRow: React.FC<{
           <AskAssistantButton
             variant="ghost"
             context={[{ kind: 'look', id: active.id, label: active.name }]}
-            prompt="Give this look a different outfit."
           />
         ) : null}
       </div>
