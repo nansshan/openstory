@@ -137,6 +137,11 @@ result cannot carry one, because the OpenRouter adapter flattens a tool
 message to text, so `get_shot_frames` is blind here. The system line says
 the picture is attached. A shot chip carries no still yet.
 
+A clip is never attached. The model watches one on request through the
+`watch_clip` MCP tool (`watchClipForTeam`), which runs its own Gemini 4
+Argon call over the Files API, so the chat model stays whatever the user
+picked and the cost is one call, not every turn.
+
 ## Shell
 
 `AssistantPanel` is mounted once in `AppLayout`, right of the page on

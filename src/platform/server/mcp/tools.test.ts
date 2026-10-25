@@ -4529,6 +4529,16 @@ describe('Studio create and edit (#1985)', () => {
       await call('draft_studio_prompt', { activity: 'image' })
     ).toMatchObject(refusal('INSUFFICIENT_CREDITS'));
   });
+
+  it('refuses to watch a clip without a Gemini key', async () => {
+    vi.stubEnv('OPENROUTER_KEY', 'or-test');
+    expect(
+      await call('watch_clip', {
+        url: '/r2/uploads/team/clip.mp4',
+        question: 'What happens in this clip?',
+      })
+    ).toMatchObject(refusal('VALIDATION_ERROR'));
+  });
 });
 
 describe('get_export_status without an exportId (#1461)', () => {

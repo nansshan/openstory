@@ -282,6 +282,7 @@ describe('handleMcpPost Origin and auth gates', () => {
       'openstory.set_studio_asset_favorite',
       'openstory.delete_studio_asset',
       'openstory.draft_studio_prompt',
+      'openstory.watch_clip',
       'openstory.get_studio_edit_history',
       'openstory.plan_generation',
       'openstory.execute_generation',
