@@ -9,6 +9,7 @@
  */
 
 import { getEnv } from '#env';
+import type { EnvVarName } from '@/platform/server/env/environment';
 import { getLogger } from '@/platform/logger';
 import type { AcquireInput, BytePlusGovernor } from './byteplus-governor.do';
 
@@ -39,9 +40,9 @@ const CREATE_MAX_WAIT_MS = 15 * 60_000;
  */
 const READ_MAX_WAIT_MS = 60_000;
 
-function envQpm(name: string, fallback: number): number {
-  const raw = Reflect.get(getEnv(), name);
-  const parsed = typeof raw === 'string' ? Number.parseInt(raw, 10) : NaN;
+function envQpm(name: EnvVarName, fallback: number): number {
+  const raw = getEnv()[name];
+  const parsed = raw === undefined ? NaN : Number.parseInt(raw, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
@@ -88,12 +89,9 @@ export async function reserveBytePlusCreateSlot(): Promise<number> {
 }
 
 function governorStub(): DurableObjectStub<BytePlusGovernor> | undefined {
-  // getEnv()'s type is platform-dependent; the Cloudflare runtime guarantees
-  // the Cloudflare.Env shape, and outside it (tests, scripts) the binding is
-  // simply absent.
-  // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion -- platform-dependent env shape
-  const namespace = (getEnv() as unknown as Partial<Cloudflare.Env>)
-    .BYTEPLUS_GOVERNOR;
+  // Outside workerd (tests, scripts) the binding is absent.
+  const env: Partial<Cloudflare.Env> = getEnv();
+  const namespace = env.BYTEPLUS_GOVERNOR;
   if (!namespace) return undefined;
   return namespace.get(namespace.idFromName(GOVERNOR_NAME));
 }
