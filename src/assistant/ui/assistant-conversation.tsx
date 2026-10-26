@@ -4,6 +4,7 @@
  * the panel shell can swap threads by key.
  */
 
+import type { ChatInterrupt, ToolApprovalInterrupt } from '@tanstack/ai-client';
 import type { ConnectionAdapter } from '@tanstack/ai-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useRef } from 'react';
@@ -39,14 +40,7 @@ export const AssistantConversation: React.FC<AssistantConversationProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const chat = useAssistantChat({ threadId, pageContext, connection });
-  const {
-    messages,
-    sendMessage,
-    isLoading,
-    error,
-    stop,
-    addToolApprovalResponse,
-  } = chat;
+  const { messages, sendMessage, isLoading, error, stop, interrupts } = chat;
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -57,14 +51,21 @@ export const AssistantConversation: React.FC<AssistantConversationProps> = ({
   });
 
   // Bound approvals, by tool call, so the card that asked carries its buttons.
-  // Answered by approval id, which the tool-call part carries: the server
-  // tools are not registered on the client, so the typed `interrupts` list
-  // cannot narrow to them.
+  // Answered by tool call id. The server tools are not registered on the
+  // client, so the typed list cannot name their approvals; widen to the
+  // untyped approval shape the stream carries.
+  const pending: ReadonlyArray<ChatInterrupt | ToolApprovalInterrupt> =
+    interrupts;
+  const resolve = (toolCallId: string, approved: boolean) =>
+    pending
+      .find(
+        (i): i is ToolApprovalInterrupt =>
+          i.kind === 'tool-approval' && i.toolCallId === toolCallId
+      )
+      ?.resolveInterrupt(approved);
   const approvals = {
-    approve: (approvalId: string) =>
-      void addToolApprovalResponse({ id: approvalId, approved: true }),
-    deny: (approvalId: string) =>
-      void addToolApprovalResponse({ id: approvalId, approved: false }),
+    approve: (toolCallId: string) => resolve(toolCallId, true),
+    deny: (toolCallId: string) => resolve(toolCallId, false),
   };
 
   const lastId = messages.at(-1)?.id;

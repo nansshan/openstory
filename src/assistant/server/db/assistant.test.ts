@@ -1,9 +1,10 @@
 /**
- * The assistant stores against an in-memory SQLite (#2155): a thread is the
+ * The assistant stores against an in-memory D1 (#2155): a thread is the
  * user's own, a saved transcript round-trips with ids, an engine tool
  * message gets the id its wire form carries so the next turn does not
  * append a copy, and a run's record is scoped to its thread.
  */
+import { createTestDb } from '@/platform/server/db/test-d1';
 import type { Database } from '@/platform/server/db/client';
 import { generateId } from '@/platform/id';
 import {
@@ -14,14 +15,10 @@ import {
   teams,
   user,
 } from '@/platform/server/db/schema';
-import { relations } from '@/platform/server/db/schema/relations';
-import { type Client, createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-import { migrate } from 'drizzle-orm/libsql/migrator';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createAssistantMethods, threadTitleFrom } from './assistant';
 
-let client: Client;
+let closeDb: () => Promise<void>;
 let db: Database;
 let teamId = '';
 let userId = '';
@@ -30,13 +27,11 @@ let otherUserId = '';
 // Every migration runs into the in-memory file; on a busy machine that is
 // longer than the default hook timeout.
 beforeAll(async () => {
-  client = createClient({ url: ':memory:' });
-  db = drizzle({ client, relations });
-  await migrate(db, { migrationsFolder: './drizzle/migrations' });
+  ({ db, close: closeDb } = await createTestDb());
 }, 120_000);
 
-afterAll(() => {
-  client.close();
+afterAll(async () => {
+  await closeDb();
 });
 
 beforeEach(async () => {

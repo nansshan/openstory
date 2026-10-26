@@ -128,6 +128,7 @@
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/ai": "^1.0.0",
     "@tanstack/ai-byteplus": "^1.0.0",
+    "@tanstack/ai-client": "1.0.0",
     "@tanstack/ai-elevenlabs": "^1.0.0",
     "@tanstack/ai-fal": "^1.0.0",
     "@tanstack/ai-gemini": "^1.0.0",

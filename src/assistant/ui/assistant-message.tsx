@@ -147,10 +147,8 @@ export const AssistantMessage: React.FC<{
               part={part}
               result={results.get(part.id)}
               estimate={estimate}
-              onApprove={() =>
-                part.approval && approvals.approve(part.approval.id)
-              }
-              onDeny={() => part.approval && approvals.deny(part.approval.id)}
+              onApprove={() => approvals.approve(part.id)}
+              onDeny={() => approvals.deny(part.id)}
             />
           );
         }
