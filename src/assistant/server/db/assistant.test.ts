@@ -260,10 +260,12 @@ describe('deleteThread', () => {
       { id: 'm1', role: 'user', content: 'a' },
     ]);
     await stores.runs.createOrResume({ runId: 'r', threadId, startedAt: 1 });
-    expect(await methods.deleteThread(threadId)).toEqual(['r']);
+    expect(await methods.threadRunIds(threadId)).toEqual(['r']);
+    expect(await methods.deleteThread(threadId)).toBe(true);
     expect(await methods.getThread(threadId)).toBeNull();
     expect(await db.select().from(assistantMessages)).toHaveLength(0);
     expect(await db.select().from(assistantRuns)).toHaveLength(0);
-    expect(await methods.deleteThread(threadId)).toBeNull();
+    expect(await methods.threadRunIds(threadId)).toBeNull();
+    expect(await methods.deleteThread(threadId)).toBe(false);
   });
 });

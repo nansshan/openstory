@@ -313,16 +313,11 @@ export async function handleAssistantChat(
   );
   // A run this thread still records as running was cut off before its
   // terminal hook (a killed isolate): a new turn supersedes it, and its log
-  // is sealed so nothing tails it forever.
+  // is sealed so nothing tails it forever. A seal that fails fails the turn:
+  // the same log store carries this reply, and a reader left on an open log
+  // would wait on it until it expires.
   for (const runId of await scopedDb.assistant.closeOpenRuns(thread.id)) {
-    try {
-      await sealStreamLog(caller, { runId, threadId: thread.id });
-    } catch (error) {
-      logger.warn('sealing a cut-off assistant run failed', {
-        runId,
-        err: toErrorPayload(error),
-      });
-    }
+    await sealStreamLog(caller, { runId, threadId: thread.id });
   }
   const abortController = new AbortController();
   const middleware: Array<ChatMiddleware<OpenStoryMcpContext>> = [

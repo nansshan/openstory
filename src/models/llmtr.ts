@@ -48,12 +48,12 @@ export const LLMTR_BASE_URL = 'https://llmtr.com/v1';
  * must not block model upgrades. Existing OpenRouter/fal resolution applies.
  */
 export const LLMTR_UNMAPPED_MODEL_IDS = [
-  'google/gemini-4-argon', // LLMTR support and pricing not yet verified.
   'anthropic/claude-opus-5.5', // LLMTR support and pricing not yet verified.
   'openai/gpt-6.1-sol', // LLMTR support and pricing not yet verified.
   'openai/gpt-6-luna', // LLMTR support and pricing not yet verified.
   'x-ai/grok-4.7', // LLMTR support and pricing not yet verified.
   'anthropic/claude-sonnet-5.5', // LLMTR support and pricing not yet verified.
+  'google/gemini-4-argon', // LLMTR support and pricing not yet verified.
   'anthropic/claude-opus-5-fast',
   'deepseek/deepseek-v3.2',
   'bytedance-seed/seed-2.0-mini',

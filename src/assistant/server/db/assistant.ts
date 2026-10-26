@@ -476,11 +476,11 @@ export function createAssistantMethods(
 
     /** Removes the thread and everything it holds. Nothing cascades. */
     /**
-     * Removes the thread and everything it holds; answers the ids of its
-     * runs so the caller can drop their stream logs too, or null when the
-     * thread is not this user's.
+     * The ids of a thread's runs, or null when the thread is not this
+     * user's. The caller drops their stream logs before deleting the thread,
+     * so a failed drop leaves a thread that can still be deleted.
      */
-    deleteThread: async (id: string): Promise<string[] | null> => {
+    threadRunIds: async (id: string): Promise<string[] | null> => {
       const rows = await db
         .select({ id: assistantThreads.id })
         .from(assistantThreads)
@@ -491,6 +491,17 @@ export function createAssistantMethods(
         .select({ runId: assistantRuns.runId })
         .from(assistantRuns)
         .where(eq(assistantRuns.threadId, id));
+      return runs.map((row) => row.runId);
+    },
+
+    /** Removes the thread and everything it holds. Nothing cascades. */
+    deleteThread: async (id: string): Promise<boolean> => {
+      const rows = await db
+        .select({ id: assistantThreads.id })
+        .from(assistantThreads)
+        .where(and(own, eq(assistantThreads.id, id)))
+        .limit(1);
+      if (!rows[0]) return false;
       await db.batch([
         db
           .delete(assistantInterrupts)
@@ -499,7 +510,7 @@ export function createAssistantMethods(
         db.delete(assistantMessages).where(eq(assistantMessages.threadId, id)),
         db.delete(assistantThreads).where(eq(assistantThreads.id, id)),
       ]);
-      return runs.map((row) => row.runId);
+      return true;
     },
 
     /** The persistence stores for one thread this user owns. */

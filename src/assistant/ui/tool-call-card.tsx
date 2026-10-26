@@ -39,15 +39,23 @@ export type ToolCardStatus = 'running' | 'waiting' | 'done' | 'error';
 /**
  * The engine's answer when the model calls a lazy tool it has only seen by
  * name: not a failure, the next step discovers the tool and calls again.
+ * Matched on the engine's own wording for this call (`getUndiscoveredToolError`
+ * in @tanstack/ai), which has no code of its own; a wording change shows
+ * here as a card that reads "Failed".
  */
-const needsDiscovery = (result: ToolResultPart | undefined) =>
-  result?.error?.includes('must be discovered first') === true;
+const needsDiscovery = (
+  part: ToolCallPart,
+  result: ToolResultPart | undefined
+) =>
+  result?.error?.startsWith(
+    `Error: Tool '${part.name}' must be discovered first.`
+  ) === true;
 
 export function toolCardStatus(
   part: ToolCallPart,
   result: ToolResultPart | undefined
 ): ToolCardStatus {
-  if (needsDiscovery(result)) return 'done';
+  if (needsDiscovery(part, result)) return 'done';
   if (result?.state === 'error' || part.state === 'error') return 'error';
   if (result?.state === 'complete') return 'done';
   if (part.state === 'approval-requested') return 'waiting';
@@ -99,7 +107,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
   const status = toolCardStatus(part, result);
   const inputs = keyInputs(part.input);
   // The engine's "discover it first" is bookkeeping, not a result to read.
-  const details = needsDiscovery(result) ? '' : resultText(result);
+  const details = needsDiscovery(part, result) ? '' : resultText(result);
   const denied = result?.outcome === 'denied';
   const viewUri = viewForChatTool(part.name);
   return (
@@ -128,7 +136,7 @@ export const ToolCallCard: React.FC<ToolCallCardProps> = ({
         <span className="shrink-0 text-xs text-muted-foreground">
           {denied
             ? 'Denied'
-            : needsDiscovery(result)
+            : needsDiscovery(part, result)
               ? 'Loaded, called again'
               : STATUS_LABEL[status]}
         </span>

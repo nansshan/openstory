@@ -78,7 +78,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'Google',
     license: 'proprietary' as const,
     // Arena 1493 (gemini-3.8-flash-high, Preliminary).
-    qualityRank: 6,
+    qualityRank: 5,
     contextWindow: 1_048_576,
     maxOutputTokens: 65_536,
     vision: true,
@@ -90,7 +90,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'Google',
     license: 'proprietary' as const,
     // Arena 1487.
-    qualityRank: 7,
+    qualityRank: 6,
     contextWindow: 1_048_576,
     maxOutputTokens: 65_536,
     vision: true,
@@ -103,7 +103,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     license: 'proprietary' as const,
     // Bumped from GPT-6 Sol (itself bumped from GPT-5.6 Sol, Arena 1483,
     // gpt-5.6-sol-xhigh); re-rank on next LMArena snapshot.
-    qualityRank: 8,
+    qualityRank: 7,
     contextWindow: 1_050_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -116,7 +116,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'OpenAI',
     license: 'proprietary' as const,
     // Arena 1482 (gpt-5.5-high).
-    qualityRank: 9,
+    qualityRank: 8,
     contextWindow: 1_050_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -130,7 +130,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'Anthropic',
     license: 'proprietary' as const,
     // Arena 1481 (opus-4-8-high).
-    qualityRank: 10,
+    qualityRank: 9,
     contextWindow: 1_000_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -143,7 +143,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'SpaceXAI',
     license: 'proprietary' as const,
     // Arena 1475 (grok-4.20-beta1).
-    qualityRank: 11,
+    qualityRank: 10,
     contextWindow: 2_000_000,
     maxOutputTokens: 1_800_000,
     vision: true,
@@ -156,7 +156,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'Z.ai',
     license: 'open-weight' as const,
     // Arena 1475 (glm-5.3-flash).
-    qualityRank: 12,
+    qualityRank: 11,
     contextWindow: 1_048_576,
     maxOutputTokens: 131_072,
     // Replaced GLM-5.2 (#1367): GLM-5.3 proper has no OpenRouter endpoint with
@@ -174,7 +174,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'Google',
     license: 'proprietary' as const,
     // Arena 1474.
-    qualityRank: 13,
+    qualityRank: 12,
     contextWindow: 1_048_576,
     maxOutputTokens: 65_536,
     vision: true,
@@ -188,7 +188,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'OpenAI',
     license: 'proprietary' as const,
     // Arena 1466 (gpt-5.6-terra-xhigh).
-    qualityRank: 14,
+    qualityRank: 13,
     contextWindow: 1_050_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -200,7 +200,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'DeepSeek',
     license: 'open-weight' as const,
     // Arena 1463 (v4-pro-high-20260813).
-    qualityRank: 15,
+    qualityRank: 14,
     contextWindow: 1_048_576,
     maxOutputTokens: 943_717,
     // Text-only.
@@ -214,7 +214,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     license: 'proprietary' as const,
     // Bumped from Claude Sonnet 5 (Arena 1461, sonnet-5-high); re-rank on
     // next LMArena snapshot.
-    qualityRank: 16,
+    qualityRank: 15,
     contextWindow: 1_000_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -227,7 +227,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     license: 'proprietary' as const,
     // Bumped from Grok 4.6 (Arena 1456, grok-4.6-high); re-rank on next
     // LMArena snapshot.
-    qualityRank: 17,
+    qualityRank: 16,
     contextWindow: 500_000,
     maxOutputTokens: 450_000,
     // Accepts image input — required so the motion-prompt pass can be
@@ -244,7 +244,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     license: 'proprietary' as const,
     // Bumped from GPT-5.6 Luna (Arena 1452, gpt-5.6-luna-xhigh); re-rank on
     // next LMArena snapshot.
-    qualityRank: 18,
+    qualityRank: 17,
     contextWindow: 1_050_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -256,7 +256,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'OpenAI',
     license: 'proprietary' as const,
     // Arena 1448 (gpt-5.4-mini-high).
-    qualityRank: 19,
+    qualityRank: 18,
     contextWindow: 400_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -270,7 +270,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'DeepSeek',
     license: 'open-weight' as const,
     // Arena 1425.
-    qualityRank: 20,
+    qualityRank: 19,
     contextWindow: 163_840,
     maxOutputTokens: 147_456,
     // Text-only.
@@ -284,7 +284,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'OpenAI',
     license: 'proprietary' as const,
     // Arena 1402 (gpt-5.4-nano-high).
-    qualityRank: 21,
+    qualityRank: 20,
     contextWindow: 400_000,
     maxOutputTokens: 128_000,
     vision: true,
@@ -298,7 +298,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'Mistral',
     license: 'open-weight' as const,
     // Not on the Arena board.
-    qualityRank: 22,
+    qualityRank: 21,
     contextWindow: 262_144,
     maxOutputTokens: 209_715,
     vision: true,
@@ -310,7 +310,7 @@ export const SCRIPT_ANALYSIS_MODELS = [
     vendor: 'ByteDance',
     license: 'proprietary' as const,
     // Not on the Arena board (Seed 2.0 Pro is 1456).
-    qualityRank: 23,
+    qualityRank: 22,
     contextWindow: 262_144,
     maxOutputTokens: 131_072,
     vision: true,

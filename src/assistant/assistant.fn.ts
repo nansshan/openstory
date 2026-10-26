@@ -44,11 +44,14 @@ export const deleteAssistantThreadFn = createServerFn({ method: 'POST' })
   .middleware([authWithTeamMiddleware])
   .validator(zodValidator(threadIdSchema))
   .handler(async ({ context, data }) => {
-    const runIds = await context.scopedDb.assistant.deleteThread(data.threadId);
+    const runIds = await context.scopedDb.assistant.threadRunIds(data.threadId);
     if (runIds === null) return { deleted: false };
-    // The rows are gone; the replies' stream logs go with them.
+    // Logs first: a drop that fails leaves the thread, and the user a
+    // delete that failed, not a thread gone with its replies still readable.
     await deleteStreamLogs(context, runIds);
-    return { deleted: true };
+    return {
+      deleted: await context.scopedDb.assistant.deleteThread(data.threadId),
+    };
   });
 
 /**
