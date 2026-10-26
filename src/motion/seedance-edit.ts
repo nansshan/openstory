@@ -159,9 +159,17 @@ function knownSeconds(seconds: number | null | undefined): number | null {
   return seconds != null && Number.isFinite(seconds) ? seconds : null;
 }
 
+// Ark's CreateAsset window for a reference clip
+// (`InvalidParameter.DurationTooLong` / `DurationTooShort`, #2205).
+const SEEDANCE_REFERENCE_MIN_SECONDS = 1.8;
+const SEEDANCE_REFERENCE_MAX_SECONDS = 30.2;
+
 // Rounds away from the window, so 3.99s reads 3.9s and never "4s".
-function formatSeconds(seconds: number): string {
-  const round = seconds < SEEDANCE_EDIT_MIN_SECONDS ? Math.floor : Math.ceil;
+function formatSeconds(
+  seconds: number,
+  min = SEEDANCE_EDIT_MIN_SECONDS
+): string {
+  const round = seconds < min ? Math.floor : Math.ceil;
   const rounded = round(seconds * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
@@ -186,6 +194,39 @@ export function seedanceEditLengthMessage(
   return `Seedance can only edit a video ${EDIT_WINDOW}. This one is ${formatSeconds(seconds)}s.`;
 }
 
+/**
+ * Plain refusal when a known reference clip is outside Ark's 1.8–30.2s
+ * asset window; null when unknown or inside. The edit window (4–30s) is
+ * narrower, so an edit asks `seedanceEditLengthMessage` instead.
+ */
+export function seedanceReferenceLengthMessage(
+  length: number | null | undefined
+): string | null {
+  const seconds = knownSeconds(length);
+  if (
+    seconds === null ||
+    (seconds >= SEEDANCE_REFERENCE_MIN_SECONDS &&
+      seconds <= SEEDANCE_REFERENCE_MAX_SECONDS)
+  ) {
+    return null;
+  }
+  return `Seedance can only use a reference video between ${SEEDANCE_REFERENCE_MIN_SECONDS} and ${SEEDANCE_REFERENCE_MAX_SECONDS} seconds. This one is ${formatSeconds(seconds, SEEDANCE_REFERENCE_MIN_SECONDS)}s.`;
+}
+
+/**
+ * The refusal for a clip on an Ark Seedance run: the edit window when the
+ * run follows the clip, Ark's asset window otherwise. Null off Ark.
+ */
+export function seedanceClipLengthMessage(
+  length: number | null | undefined,
+  job: { model: string | null | undefined; onArk: boolean; edit: boolean }
+): string | null {
+  if (job.model !== 'seedance_v2_5' || !job.onArk) return null;
+  return job.edit
+    ? seedanceEditLengthMessage(length)
+    : seedanceReferenceLengthMessage(length);
+}
+
 /** Ark's async `InternalServiceError`, only on a job we sent to BytePlus. */
 export function isSeedanceInternalServiceError(
   message: string,
@@ -194,6 +235,8 @@ export function isSeedanceInternalServiceError(
   return via === 'byteplus' && /InternalServiceError/.test(message);
 }
 
+// The asset pool appends the stored url so a caller with the references
+// can name the one refused; it is never shown, whoever asks.
 function providerDetail(message: string): string {
   return message
     .replace(/^Motion generation failed:\s*/i, '')
@@ -201,7 +244,8 @@ function providerDetail(message: string): string {
       /^Video (?:job )?(?:submission |generation |polling )?failed[^:]*:\s*/i,
       ''
     )
-    .replace(/BytePlus Ark [\w .-]*failed \(\d+[^)]*\):\s*/i, '')
+    .replace(/BytePlus (?:Ark|OpenAPI) [\w .-]*failed \([^)]*\):\s*/i, '')
+    .replace(/\s*\((?:\/r2\/|https?:\/\/)[^)\s]*\)\s*$/, '')
     .trim();
 }
 
@@ -252,22 +296,25 @@ export function explainSeedanceFailure(
   }
   if (via !== 'byteplus' || /may show a real person/.test(message)) return null;
   if (/QuotaSharedPoolExceeded/.test(message)) return PROVIDER_BUSY_MESSAGE;
+  const reference =
+    referenceTag(message, references?.images, 'Image') ??
+    referenceTag(message, references?.videos, 'Video');
   if (/failed processing/.test(message)) {
-    const tag =
-      referenceTag(message, references?.images, 'Image') ??
-      referenceTag(message, references?.videos, 'Video');
-    return tag
-      ? `${tag} couldn't be processed. You weren't charged.`
+    return reference
+      ? `${reference} couldn't be processed. You weren't charged.`
       : REFERENCE_PROCESS_MESSAGE;
   }
   if (/TaskTypeConstraint/.test(message))
     return SEEDANCE_EDIT_CONSTRAINT_MESSAGE;
   if (/InternalServiceError/.test(message)) return SEEDANCE_INTERNAL_MESSAGE;
+  const lead = reference
+    ? `${reference} couldn't be used.`
+    : "Seedance couldn't process this video.";
   const detail = providerDetail(message);
-  if (!detail) return `Seedance couldn't process this video. ${NOT_CHARGED}`;
+  if (!detail) return `${lead} ${NOT_CHARGED}`;
   const short = detail.length > 180 ? `${detail.slice(0, 177)}…` : detail;
   const stop = /[.!?…]$/.test(short) ? '' : '.';
-  return `Seedance couldn't process this video. ${short}${stop} ${NOT_CHARGED}`;
+  return `${lead} ${short}${stop} ${NOT_CHARGED}`;
 }
 
 /**

@@ -55,7 +55,7 @@ import { measureOwnMediaDuration } from '@/cast/server/sequence-elements/media-d
 import {
   generationCouldNotStartMessage,
   isSeedanceEdit,
-  seedanceEditLengthMessage,
+  seedanceClipLengthMessage,
 } from '@/motion/seedance-edit';
 import { mediaUrlHasTraversal } from '@/platform/schemas/media-url.schemas';
 import { r2KeyFromUrl } from '@/platform/server/storage/buckets';
@@ -389,12 +389,19 @@ export async function createStudioAssets(
         (input.mode === 'reference' && input.referenceVideos.length > 0),
       explicitEdit: input.mode === 'edit',
     });
-    // A reference clip outside 4–30s is refused before the hold. The length
-    // is read from the stored file, never taken from the client. A URL that
-    // is not ours stays unknown and still submits; a file of ours that
-    // cannot be read is refused, not treated as unknown. Edit mode's source
-    // is a clip Seedance made, so it is assumed to be inside the window.
-    if (followsClip) {
+    // A reference clip outside the window (4–30s for an edit, Ark's
+    // 1.8–30.2s asset window otherwise, #2205) is refused before the hold.
+    // The length is read from the stored file, never taken from the client.
+    // A URL that is not ours stays unknown and still submits; a file of ours
+    // that cannot be read is refused, not treated as unknown. Edit mode's
+    // source is a clip Seedance made, so it is assumed to be inside the
+    // window.
+    const arkClips =
+      input.videoModel === 'seedance_v2_5' &&
+      byteplus &&
+      input.mode === 'reference' &&
+      input.referenceVideos.length > 0;
+    if (arkClips) {
       const clipSeconds = await Promise.all(
         referenceVideoUrls.map(async (url) => {
           const key = r2KeyFromUrl(url);
@@ -411,7 +418,11 @@ export async function createStudioAssets(
         })
       );
       for (const seconds of clipSeconds) {
-        const lengthMessage = seedanceEditLengthMessage(seconds);
+        const lengthMessage = seedanceClipLengthMessage(seconds, {
+          model: input.videoModel,
+          onArk: byteplus,
+          edit: followsClip,
+        });
         if (lengthMessage) throw new ValidationError(lengthMessage);
       }
     }
