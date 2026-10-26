@@ -218,7 +218,7 @@ type RegisteredMotionOutput = ReturnType<MotionTransform<MotionEndpointId>>;
  * Does this reference-to-video submission pin the still in its own
  * start-frame field rather than spending the first image slot on it?
  *
- * Only true where the endpoint actually has such a field (Kling O3) and the
+ * Only true where the endpoint actually has such a field (Kling O3, Kling 4) and the
  * shot actually rendered a still. Exported so the over-cap check in
  * `submitFalMotionJob` computes the same reference budget the builder does —
  * the two disagreeing would mean warning about drops that never happened, or
@@ -340,7 +340,7 @@ export function buildMotionRequest<T extends ImageToVideoModel>(
     // because fal rejects a request with no reference image OR video.
     [imageField]: imageUrls,
     // The transform maps `imageUrl` onto the schema's start-frame field
-    // (`start_image_url` on Kling O3, the only reference endpoint with one).
+    // (`start_image_url` on Kling O3 and Kling 4).
     ...(pinsStartFrame && { imageUrl: options.imageUrl }),
     ...(videoUrls.length > 0 && {
       [config.videoField ?? 'video_urls']: videoUrls,
