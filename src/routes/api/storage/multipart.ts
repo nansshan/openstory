@@ -4,6 +4,10 @@ import {
   createMultipartUpload,
   uploadPart,
 } from '#storage';
+import {
+  requireUploadCheckAllowed,
+  startCheckForStoredUpload,
+} from '@/cast/server/upload-check';
 import { authRequestMiddleware } from '@/platform/middleware.fn';
 import { handleApiError } from '@/platform/errors';
 import { resolveUploadTarget } from '@/platform/server/storage/upload-target';
@@ -44,9 +48,18 @@ export const Route = createFileRoute('/api/storage/multipart')({
         try {
           const resolved = await resolveUploadTarget(request, context.user);
           if (!resolved.ok) return resolved.response;
-          const { bucket, path, contentType } = resolved.target;
+          const { bucket, path, contentType, teamId } = resolved.target;
           const url = new URL(request.url);
           const action = url.searchParams.get('action');
+          // Before the bytes: at create, and again before complete stores them.
+          if (action === 'create' || action === 'complete') {
+            await requireUploadCheckAllowed({
+              bucket,
+              contentType,
+              teamId,
+              userId: context.user.id,
+            });
+          }
 
           if (action === 'create') {
             const { uploadId } = await createMultipartUpload(
@@ -79,6 +92,15 @@ export const Route = createFileRoute('/api/storage/multipart')({
               uploadId,
               parsed.data.parts
             );
+            // The likeness check starts here, not from the browser (#2192).
+            await startCheckForStoredUpload({
+              bucket,
+              path,
+              contentType,
+              teamId,
+              userId: context.user.id,
+              request,
+            });
             return Response.json({
               success: true,
               publicUrl: result.publicUrl,

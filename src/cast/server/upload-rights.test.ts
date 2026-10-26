@@ -182,8 +182,22 @@ describe('classifyUpload', () => {
 
     await expect(
       classifyUpload({ scopedDb, userId: USER_ID, url: clip, request })
-    ).rejects.toThrow('can’t be checked for a real person');
+    ).rejects.toThrow('not an upload of yours');
     expect(mockAnalyzeClip).not.toHaveBeenCalled();
+  });
+
+  it('reads ownership off the owner segment, not a substring (#2192)', async () => {
+    const scopedDb = createScopedDb(TEAM_ID, USER_ID);
+    for (const url of [
+      `/r2/talent/${generateId()}/uploads/${TEAM_ID}/01X.png`,
+      `/r2/thumbnails/teams/${generateId()}/${TEAM_ID}/01X.png`,
+      `/r2/talent/${TEAM_ID}/uploads/../../${generateId()}/01X.png`,
+    ]) {
+      await expect(
+        classifyUpload({ scopedDb, userId: USER_ID, url, request })
+      ).rejects.toThrow('not an upload of yours');
+    }
+    expect(mockAnalyze).not.toHaveBeenCalled();
   });
 
   it('refuses a clip that is not ours, and records nothing', async () => {

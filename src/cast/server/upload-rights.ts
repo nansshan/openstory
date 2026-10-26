@@ -24,10 +24,15 @@ import type { Likeness } from '@/cast/likeness';
 import {
   analyzeTalentClipForTeam,
   analyzeTalentMediaForTeam,
+  type VisionBillingDb,
 } from '@/cast/server/talent/analyze-talent-media';
 import type { TalentVisionResult } from '@/cast/server/talent-vision';
 import type { TalentSubjectKind } from '@/cast/subject-kind';
-import type { PortraitAttestation, UploadRights } from '@/cast/upload-rights';
+import {
+  needsLikenessCheck,
+  type PortraitAttestation,
+  type UploadRights,
+} from '@/cast/upload-rights';
 import {
   LIKENESS_CLEARED_V1,
   LIKENESS_DETECTED_V1,
@@ -37,6 +42,7 @@ import {
 } from '@/platform/compliance/attestations';
 import { sha256Hex } from '@/platform/compliance/hash';
 import { AttestationRequiredError, ValidationError } from '@/platform/errors';
+import { mediaUrlHasTraversal } from '@/platform/schemas/media-url.schemas';
 import { r2KeyFromUrl } from '@/platform/server/storage/buckets';
 import {
   getExtensionFromUrl,
@@ -62,6 +68,21 @@ export type UploadRightsReader = {
     >;
   };
 };
+
+/**
+ * What a likeness check reads and writes: the ledger, plus a billed vision
+ * call. A request passes its `ScopedDb`; `UploadCheckWorkflow` passes the
+ * same methods through its named hatches.
+ */
+export type LikenessCheckDb = Pick<ScopedDb, 'teamId' | 'userId'> &
+  VisionBillingDb & {
+    compliance: {
+      attestations: Pick<
+        ScopedDb['compliance']['attestations'],
+        'listForSubject' | 'record'
+      >;
+    };
+  };
 
 async function latestRow(
   scopedDb: UploadRightsReader,
@@ -91,8 +112,17 @@ function rightsFromRow(row: UploadAttestation): UploadRights {
   }
 }
 
+/** What the ledger says about one upload, or null when it has no row. */
+export async function uploadRightsOnRecord(
+  scopedDb: UploadRightsReader,
+  url: string
+): Promise<UploadRights | null> {
+  const row = await latestRow(scopedDb, url);
+  return row ? rightsFromRow(row) : null;
+}
+
 async function record(
-  scopedDb: ScopedDb,
+  scopedDb: LikenessCheckDb,
   url: string,
   statement: AttestationStatement,
   authorizationBasis: string | null,
@@ -115,7 +145,7 @@ async function record(
  * already has a row (a re-check never downgrades a sign-off).
  */
 export async function recordLikenessFinding(
-  scopedDb: ScopedDb,
+  scopedDb: LikenessCheckDb,
   urls: string[],
   subjectKind: TalentSubjectKind,
   request: LikenessRequestContext
@@ -145,7 +175,7 @@ export async function recordLikenessFinding(
  * refused, never waved through.
  */
 function analyzeUpload(opts: {
-  scopedDb: ScopedDb;
+  scopedDb: LikenessCheckDb;
   userId: string;
   url: string;
   filename?: string;
@@ -186,19 +216,42 @@ function analyzeUpload(opts: {
 }
 
 /**
+ * A raw URL, or one of this team's own stored objects. Ownership is the
+ * key's owner segment, read the way the upload route reads it
+ * (`<bucket>/<team>/…` or `<bucket>/teams/<team>/…`), never a substring.
+ */
+export function isCheckable(url: string, teamId: string): boolean {
+  const key = r2KeyFromUrl(url);
+  if (key === null) return needsLikenessCheck(url);
+  if (mediaUrlHasTraversal(url)) return false;
+  const path = key.split('/').slice(1);
+  return (path[0] === 'teams' ? path[1] : path[0]) === teamId;
+}
+
+/** Refuse a URL {@link isCheckable} rejects: another team's file. */
+export function requireCheckable(url: string, teamId: string): void {
+  if (!isCheckable(url, teamId)) {
+    throw new ValidationError('This file is not an upload of yours');
+  }
+}
+
+/**
  * The rights for one upload: what the ledger already says, or one vision
  * call whose verdict is written so the next ask is free. Never defaults to
  * human, never defaults to cleared: a classifier failure throws and leaves
- * no row, so the gate keeps refusing.
+ * no row, so the gate keeps refusing. Only this team's own objects, or a
+ * raw URL, are checked: a verdict on another team's file would let this
+ * team use it.
  */
 export async function classifyUpload(opts: {
-  scopedDb: ScopedDb;
+  scopedDb: LikenessCheckDb;
   userId: string;
   url: string;
   /** Original filename, appended to the vision prompt as a hint. */
   filename?: string;
   request: LikenessRequestContext;
 }): Promise<UploadRights> {
+  requireCheckable(opts.url, opts.scopedDb.teamId);
   const existing = await latestRow(opts.scopedDb, opts.url);
   if (existing) return rightsFromRow(existing);
   const analysis = await analyzeUpload(opts);

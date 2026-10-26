@@ -32,6 +32,8 @@ const mockRequireGenerationAllowed = vi.fn();
 const mockGetEffectiveFalPricing = vi.fn();
 const mockCaptureProductEvent = vi.fn();
 const mockMeasureStoredMediaDuration = vi.fn();
+const mockAnalyzeUpload = vi.fn();
+const mockReadInstance = vi.fn();
 
 vi.doMock('#db-client', () => ({ getDb: () => db }));
 vi.doMock('@/billing/server/preflight', async (importOriginal) => {
@@ -61,6 +63,15 @@ vi.doMock('@/platform/server/observability/product-events', () => ({
 vi.doMock('@/cast/server/sequence-elements/media-duration', () => ({
   measureOwnMediaDuration: mockMeasureStoredMediaDuration,
 }));
+// The likeness classifier a create runs on an unchecked upload (#2192).
+vi.doMock('@/cast/server/talent/analyze-talent-media', () => ({
+  analyzeTalentMediaForTeam: mockAnalyzeUpload,
+  analyzeTalentClipForTeam: mockAnalyzeUpload,
+}));
+// The upload's own check run (#2192); none unless a test starts one.
+vi.doMock('@/platform/server/workflow/run-outcome', () => ({
+  readInstanceIfExists: mockReadInstance,
+}));
 vi.doMock('@/billing/server/fal-pricing-live', () => ({
   getEffectiveFalPricing: mockGetEffectiveFalPricing,
 }));
@@ -78,8 +89,19 @@ vi.doMock('@/models/server/byteplus-config', async (importOriginal) => {
   };
 });
 
-const { createStudioAssets, renderStudioAssetAtQuality } =
-  await import('./create-studio-asset');
+const studioCreate = await import('./create-studio-asset');
+const TEST_REQUEST = { ipAddress: '203.0.113.9', userAgent: 'vitest' };
+const createStudioAssets = (
+  ...[scopedDb, input, options]: [
+    Parameters<typeof studioCreate.createStudioAssets>[0],
+    Parameters<typeof studioCreate.createStudioAssets>[1],
+    Parameters<typeof studioCreate.createStudioAssets>[3]?,
+  ]
+) => studioCreate.createStudioAssets(scopedDb, input, TEST_REQUEST, options);
+const renderStudioAssetAtQuality = (
+  scopedDb: Parameters<typeof studioCreate.renderStudioAssetAtQuality>[0],
+  assetId: string
+) => studioCreate.renderStudioAssetAtQuality(scopedDb, assetId, TEST_REQUEST);
 const { createScopedDb } = await import('@/platform/server/db/scoped');
 
 const TEAM_ID = generateId();
@@ -103,6 +125,8 @@ beforeEach(async () => {
   mockRequireGenerationAllowed.mockResolvedValue(undefined);
   mockGetEffectiveFalPricing.mockResolvedValue({});
   mockMeasureStoredMediaDuration.mockResolvedValue(null);
+  mockAnalyzeUpload.mockResolvedValue({ subjectKind: 'human' });
+  mockReadInstance.mockResolvedValue({ kind: 'missing' });
 });
 
 describe('studioCreateInputSchema', () => {
@@ -829,16 +853,46 @@ describe('upload rights gate (#1581)', () => {
     referenceAudio: [],
   };
 
-  it('refuses an unchecked upload before any credit hold', async () => {
+  it('checks an unchecked upload itself, then gates on the answer (#2192)', async () => {
     const { AttestationRequiredError } = await import('@/platform/errors');
     const scopedDb = createScopedDb(TEAM_ID, USER_ID);
 
+    // The check fails: refused, no hold, no row, nothing recorded.
+    mockAnalyzeUpload.mockRejectedValueOnce(new Error('vision down'));
+    await expect(
+      createStudioAssets(scopedDb, { ...base, referenceImages: [uploadUrl] })
+    ).rejects.toThrow('vision down');
+    expect(mockReserveRunCredits).not.toHaveBeenCalled();
+
+    // A real person: checked here, then refused until signed.
     await expect(
       createStudioAssets(scopedDb, { ...base, referenceImages: [uploadUrl] })
     ).rejects.toBeInstanceOf(AttestationRequiredError);
-
     expect(mockReserveRunCredits).not.toHaveBeenCalled();
     expect(await db.select().from(generatedAssets)).toEqual([]);
+
+    // No person: checked here and generated, with no earlier check.
+    const cleared = `/r2/talent/${TEAM_ID}/temp/01CLEAR.png`;
+    mockAnalyzeUpload.mockResolvedValueOnce({ subjectKind: 'other' });
+    await createStudioAssets(scopedDb, {
+      ...base,
+      referenceImages: [cleared],
+    });
+    expect(mockReserveRunCredits).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses while the upload’s own check is still running, with no second check', async () => {
+    const { AttestationRequiredError } = await import('@/platform/errors');
+    const scopedDb = createScopedDb(TEAM_ID, USER_ID);
+    mockReadInstance
+      .mockResolvedValueOnce({ kind: 'read', status: 'running' })
+      .mockResolvedValueOnce({ kind: 'missing' });
+
+    await expect(
+      createStudioAssets(scopedDb, { ...base, referenceImages: [uploadUrl] })
+    ).rejects.toThrow(AttestationRequiredError);
+    expect(mockAnalyzeUpload).not.toHaveBeenCalled();
+    expect(mockReserveRunCredits).not.toHaveBeenCalled();
   });
 
   it('refuses a detected person until signed, then generates', async () => {

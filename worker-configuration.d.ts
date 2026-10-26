@@ -85,6 +85,7 @@ interface __BaseEnv_Env {
 	SEQUENCE_EXPORT_WORKFLOW: Workflow<Parameters<import("./src/server").SequenceExportWorkflow['run']>[0]['payload']>;
 	ASSET_WORKFLOW: Workflow<Parameters<import("./src/server").AssetGenerationWorkflow['run']>[0]['payload']>;
 	STUDIO_WORKFLOW: Workflow<Parameters<import("./src/server").StudioGenerationWorkflow['run']>[0]['payload']>;
+	UPLOAD_CHECK_WORKFLOW: Workflow<Parameters<import("./src/server").UploadCheckWorkflow['run']>[0]['payload']>;
 	E2E_TEST?: "true";
 }
 declare namespace Cloudflare {
@@ -176,6 +177,7 @@ declare namespace Cloudflare {
 		SEQUENCE_EXPORT_WORKFLOW: Workflow<Parameters<import("./src/server").SequenceExportWorkflow['run']>[0]['payload']>;
 		ASSET_WORKFLOW: Workflow<Parameters<import("./src/server").AssetGenerationWorkflow['run']>[0]['payload']>;
 		STUDIO_WORKFLOW: Workflow<Parameters<import("./src/server").StudioGenerationWorkflow['run']>[0]['payload']>;
+		UPLOAD_CHECK_WORKFLOW: Workflow<Parameters<import("./src/server").UploadCheckWorkflow['run']>[0]['payload']>;
 	}
 	interface TestEnv {
 		R2_PUBLIC_ASSETS_BUCKET: R2Bucket;
@@ -261,6 +263,7 @@ declare namespace Cloudflare {
 		SEQUENCE_EXPORT_WORKFLOW: Workflow<Parameters<import("./src/server").SequenceExportWorkflow['run']>[0]['payload']>;
 		ASSET_WORKFLOW: Workflow<Parameters<import("./src/server").AssetGenerationWorkflow['run']>[0]['payload']>;
 		STUDIO_WORKFLOW: Workflow<Parameters<import("./src/server").StudioGenerationWorkflow['run']>[0]['payload']>;
+		UPLOAD_CHECK_WORKFLOW: Workflow<Parameters<import("./src/server").UploadCheckWorkflow['run']>[0]['payload']>;
 	}
 	interface Env extends __BaseEnv_Env {}
 }
