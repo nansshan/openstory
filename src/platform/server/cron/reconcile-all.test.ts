@@ -10,6 +10,8 @@
  * wrong column on the update, missing pass isolation).
  */
 
+import { getTableName, type SQL } from 'drizzle-orm';
+import { SQLiteDialect } from 'drizzle-orm/sqlite-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   characterVoiceVersions,
@@ -23,6 +25,7 @@ import {
   sequenceElements,
   sequenceMusicVariants,
   sequences,
+  videoVariants,
 } from '@/platform/server/db/schema';
 
 // Claim tables included so #1085 pass assertions can match on table identity.
@@ -37,13 +40,18 @@ type SchemaTable =
   | typeof frameVariants
   | typeof characterVoiceVersions
   | typeof characters
-  | typeof sequenceMusicVariants;
+  | typeof sequenceMusicVariants
+  | typeof videoVariants;
 type SetPayload = Record<string, Date | string | boolean | null>;
 type UpdateCall = {
   table: SchemaTable;
   payload: SetPayload;
   returning: boolean;
+  /** The rendered WHERE clause, so a test can pin a status guard. */
+  where: string;
 };
+
+const dialect = new SQLiteDialect();
 
 const updateCalls: UpdateCall[] = [];
 let limitArgs: number[] = [];
@@ -82,29 +90,32 @@ const dbMock = {
       // The real `.where(condition)` returns a thenable that also exposes
       // `.returning(...)`. Per-row updates `await` it; status-guarded claim
       // fails and blind-fail passes call `.returning(...)` instead.
-      where: () => ({
-        // oxlint-disable-next-line no-thenable -- mocking drizzle's chain
-        then(resolve: (value: undefined) => void) {
-          updateCalls.push({ table, payload, returning: false });
-          resolve(undefined);
-        },
-        returning: async () => {
-          updateCalls.push({ table, payload, returning: true });
-          if (blindFailReturning.length > 0) return blindFailReturning;
-          // Status-guarded verified claim update (first returning on the
-          // stuck table after a terminal run-state lookup).
-          if (
-            stuckSelectTable &&
-            table === stuckSelectTable &&
-            (runStateResult === 'failed' || runStateResult === 'completed') &&
-            !verifiedReturningServed.has(table)
-          ) {
-            verifiedReturningServed.add(table);
-            return stuckRows.map((r) => ({ id: r.id }));
-          }
-          return [];
-        },
-      }),
+      where: (condition: SQL) => {
+        const where = dialect.sqlToQuery(condition).sql;
+        return {
+          // oxlint-disable-next-line no-thenable -- mocking drizzle's chain
+          then(resolve: (value: undefined) => void) {
+            updateCalls.push({ table, payload, returning: false, where });
+            resolve(undefined);
+          },
+          returning: async () => {
+            updateCalls.push({ table, payload, returning: true, where });
+            if (blindFailReturning.length > 0) return blindFailReturning;
+            // Status-guarded verified claim update (first returning on the
+            // stuck table after a terminal run-state lookup).
+            if (
+              stuckSelectTable &&
+              table === stuckSelectTable &&
+              (runStateResult === 'failed' || runStateResult === 'completed') &&
+              !verifiedReturningServed.has(table)
+            ) {
+              verifiedReturningServed.add(table);
+              return stuckRows.map((r) => ({ id: r.id }));
+            }
+            return [];
+          },
+        };
+      },
     }),
   }),
 };
@@ -273,6 +284,44 @@ describe('reconcileAllStuckJobs — generated_assets passes (#458)', () => {
     const update = updateCalls.find((c) => c.table === generatedAssets);
     expect(update?.payload.status).toBe('failed');
     expect(update?.payload.error).toMatch(/was not saved/);
+  });
+
+  // A 30s clip runs past the stale cutoff, so the sweep can select it as
+  // running, then read the instance as complete after the run saved its
+  // result. The write must not land on a row that has moved on (2026-10-25:
+  // a saved Seedance clip was overwritten as "was not saved").
+  test('every run-verified write re-checks the status it selected on', async () => {
+    stuckRows = [{ id: 'row_1', runId: 'openstory-so_done' }];
+    runStateResult = 'completed';
+    const { reconcileAllStuckJobs } = await import('./reconcile-all');
+
+    await reconcileAllStuckJobs();
+
+    // Each write must check the very column it sets.
+    const guarded = updateCalls
+      .filter((c) => !c.returning)
+      .flatMap((c) => {
+        const column =
+          'shotVariantStatus' in c.payload
+            ? 'shot_variant_status'
+            : 'status' in c.payload
+              ? 'status'
+              : null;
+        if (column === null) return [];
+        const ref = `"${getTableName(c.table)}"."${column}"`;
+        expect(c.where, ref).toContain(ref);
+        return [ref];
+      });
+    expect(new Set(guarded)).toEqual(
+      new Set([
+        '"frame_variants"."status"',
+        '"video_variants"."status"',
+        '"shot_variants"."status"',
+        '"shot_variants"."shot_variant_status"',
+        '"sequences"."status"',
+        '"generated_assets"."status"',
+      ])
+    );
   });
 
   test('orphan pass blind-fails queued rows with no run id', async () => {
