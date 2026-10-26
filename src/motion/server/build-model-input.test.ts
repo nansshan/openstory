@@ -2,10 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   IMAGE_TO_VIDEO_MODELS,
   safeImageToVideoModel,
+  videoPromptHardLimit,
   type ImageToVideoModel,
 } from '@/models/models';
 import { typedEntries } from '@/platform/typed-object';
 import { buildModelInput, buildMotionRequest } from './build-model-input';
+import {
+  buildPackedMotionPrompt,
+  packedPromptFitsLimit,
+} from './build-motion-prompts';
 import type { GenerateMotionOptions } from './motion-generation';
 
 const baseOptions: GenerateMotionOptions = {
@@ -97,6 +102,55 @@ describe('buildModelInput', () => {
           multiPrompt: [{ prompt: 'x'.repeat(2501), duration: '5' }],
         })
       ).toThrow(/2500/);
+    });
+  });
+
+  describe('Kling 4.0 (#2177)', () => {
+    it('asks for 720p and sends no audio, aspect or shot_type fields', () => {
+      const result = build('kling_v4', { generateAudio: true });
+      expect(result).toMatchObject({
+        start_image_url: baseOptions.imageUrl,
+        resolution: '720p',
+        duration: 5,
+      });
+      expect(result).not.toHaveProperty('generate_audio');
+      expect(result).not.toHaveProperty('aspect_ratio');
+      expect(result).not.toHaveProperty('shot_type');
+    });
+
+    it('honours a picked tier over the 720p default', () => {
+      expect(build('kling_v4', { resolution: '1080p' }).resolution).toBe(
+        '1080p'
+      );
+    });
+
+    it('packs multi_prompt with integer durations and no prompt', () => {
+      const result = build('kling_v4', {
+        multiPrompt: [
+          { prompt: 'Shot one', duration: 4 },
+          { prompt: 'Shot two', duration: 6 },
+        ],
+      });
+      expect(result.multi_prompt).toEqual([
+        { prompt: 'Shot one', duration: 4 },
+        { prompt: 'Shot two', duration: 6 },
+      ]);
+      expect(result).not.toHaveProperty('prompt');
+      expect(result).not.toHaveProperty('shot_type');
+    });
+
+    it('packs to the 512-char shot cap, not the 26000 prompt cap', () => {
+      const shots = [
+        { durationSeconds: 4, prompt: 'x'.repeat(400) },
+        { durationSeconds: 6, prompt: 'y'.repeat(600) },
+      ];
+      const v4 = buildPackedMotionPrompt({ shots, model: 'kling_v4' });
+      expect(v4.multiPrompt?.map((s) => s.duration)).toEqual([4, 6]);
+      expect(packedPromptFitsLimit(v4, videoPromptHardLimit('kling_v4'))).toBe(
+        false
+      );
+      const v3 = buildPackedMotionPrompt({ shots, model: 'kling_v3_pro' });
+      expect(v3.multiPrompt?.map((s) => s.duration)).toEqual(['4', '6']);
     });
   });
 
@@ -196,6 +250,7 @@ describe('buildModelInput', () => {
         '14',
         '15',
       ],
+      kling_v4: Array.from({ length: 28 }, (_, i) => i + 3),
       grok_imagine_video_1_5: [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
       ],
@@ -600,6 +655,50 @@ describe('buildMotionRequest — reference-only', () => {
     ]);
     expect(input.prompt).not.toContain('starting frame');
     expect(input.prompt).toContain('@Image1');
+  });
+
+  it('routes Kling 4 reference-only to its reference endpoint at 720p in the sequence ratio', () => {
+    const { endpointId, input } = buildMotionRequest(
+      { ...referenceOnlyOptions, aspectRatio: '9:16' },
+      'kling_v4'
+    );
+
+    expect(endpointId).toBe('kling/v4/reference-to-video');
+    expect(input).not.toHaveProperty('start_image_url');
+    expect(input).toMatchObject({
+      image_urls: ['https://example.com/scarlett.png'],
+      aspect_ratio: '9:16',
+      resolution: '720p',
+    });
+    expect(input).not.toHaveProperty('generate_audio');
+    expect(input.prompt).toContain('@Image1');
+  });
+
+  it('pins a Kling 4 still in start_image_url when the shot has references', () => {
+    const { endpointId, input } = buildMotionRequest(
+      {
+        ...referenceOnlyOptions,
+        referenceOnly: false,
+        imageUrl: 'https://example.com/still.png',
+      },
+      'kling_v4'
+    );
+
+    expect(endpointId).toBe('kling/v4/reference-to-video');
+    expect(input).toMatchObject({
+      start_image_url: 'https://example.com/still.png',
+      image_urls: ['https://example.com/scarlett.png'],
+    });
+  });
+
+  it('sends a Kling 4 reference-only shot with no sheets to text-to-video', () => {
+    const { endpointId, input } = buildMotionRequest(
+      { ...referenceOnlyOptions, referenceImages: [] },
+      'kling_v4'
+    );
+
+    expect(endpointId).toBe('kling/v4/text-to-video');
+    expect(input).toMatchObject({ aspect_ratio: '16:9', resolution: '720p' });
   });
 
   it('refuses a start-frame model asked to render without one', () => {

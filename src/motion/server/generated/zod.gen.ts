@@ -2292,3 +2292,192 @@ export const zGetMinimaxH3MaxTextToVideoRequestsByRequestIdPath = z.object({
  * Result of the request.
  */
 export const zGetMinimaxH3MaxTextToVideoRequestsByRequestIdResponse = zH3MaxTextToVideoOutput;
+
+export const zV4ImageToVideoOutput = z.object({
+  video: zFile
+});
+
+export const zKlingV4Shot = z.object({
+  prompt: z.string().min(1).max(512).register(z.globalRegistry, {
+    description: 'The prompt for this shot.'
+  }),
+  duration: z.int().gte(1).lte(30).register(z.globalRegistry, {
+    description: 'Shot duration in seconds.'
+  }).optional().default(5)
+});
+
+export const zV4ImageToVideoInput = z.object({
+  resolution: z.enum(['720p', '1080p']).register(z.globalRegistry, {
+    description: 'Output resolution.'
+  }).optional().default('1080p'),
+  prompt: z.union([
+    z.string().max(26000),
+    z.unknown()
+  ]).optional(),
+  end_image_url: z.union([
+    z.string(),
+    z.unknown()
+  ]).optional(),
+  start_image_url: z.union([
+    z.string(),
+    z.string()
+  ]),
+  multi_prompt: z.union([
+    z.array(zKlingV4Shot).min(1),
+    z.unknown()
+  ]).optional(),
+  duration: z.int().gte(3).lte(30).register(z.globalRegistry, {
+    description: 'Video duration in seconds (3-30).'
+  }).optional().default(5)
+}).register(z.globalRegistry, {
+  description: 'The output aspect ratio follows the input frames.'
+});
+
+export const zGetKlingV4ImageToVideoRequestsByRequestIdStatusPath = z.object({
+  request_id: z.string().register(z.globalRegistry, {
+    description: 'Request ID'
+  })
+});
+
+export const zGetKlingV4ImageToVideoRequestsByRequestIdStatusQuery = z.object({
+  logs: z.number().register(z.globalRegistry, {
+    description: 'Whether to include logs (`1`) in the response or not (`0`).'
+  }).optional()
+});
+
+export const zGetKlingV4ImageToVideoRequestsByRequestIdStatusResponse = zQueueStatus;
+
+export const zPutKlingV4ImageToVideoRequestsByRequestIdCancelPath = z.object({
+  request_id: z.string().register(z.globalRegistry, {
+    description: 'Request ID'
+  })
+});
+
+export const zPutKlingV4ImageToVideoRequestsByRequestIdCancelResponse = z.object({
+  success: z.boolean().register(z.globalRegistry, {
+    description: 'Whether the request was cancelled successfully.'
+  }).optional()
+}).register(z.globalRegistry, {
+  description: 'The request was cancelled.'
+});
+
+export const zPostKlingV4ImageToVideoBody = zV4ImageToVideoInput;
+
+export const zPostKlingV4ImageToVideoResponse = zQueueStatus;
+
+export const zGetKlingV4ImageToVideoRequestsByRequestIdPath = z.object({
+  request_id: z.string().register(z.globalRegistry, {
+    description: 'Request ID'
+  })
+});
+
+export const zGetKlingV4ImageToVideoRequestsByRequestIdResponse = zV4ImageToVideoOutput;
+
+/**
+ * KlingV4Element
+ */
+export const zKlingV4Element = z.object({
+  video_url: z.union([
+    z.string(),
+    z.unknown()
+  ]).optional(),
+  frontal_image_url: z.union([
+    z.string(),
+    z.unknown()
+  ]).optional(),
+  reference_image_urls: z.union([
+    z.array(z.string()).max(3),
+    z.unknown()
+  ]).optional(),
+  voice_id: z.union([
+    z.string(),
+    z.unknown()
+  ]).optional()
+});
+
+/**
+ * ReferenceToVideoInput
+ */
+export const zV4ReferenceToVideoInput = z.object({
+  video_urls: z.union([
+    z.array(z.string()).max(5),
+    z.unknown()
+  ]).optional(),
+  prompt: z.union([
+    z.string().max(26000),
+    z.unknown()
+  ]).optional(),
+  multi_prompt: z.union([
+    z.array(zKlingV4Shot).min(1),
+    z.unknown()
+  ]).optional(),
+  duration: z.int().gte(3).lte(30).register(z.globalRegistry, {
+    description: 'Video duration in seconds (3-30).'
+  }).optional().default(5),
+  resolution: z.enum(['720p', '1080p']).register(z.globalRegistry, {
+    description: 'Output resolution.'
+  }).optional().default('1080p'),
+  aspect_ratio: z.enum([
+    'auto',
+    '16:9',
+    '9:16',
+    '1:1',
+    '21:9'
+  ]).register(z.globalRegistry, {
+    description: 'Aspect ratio of the generated video. \'auto\' adapts it to the references.'
+  }).optional().default('16:9'),
+  image_urls: z.union([
+    z.array(z.string()).max(10),
+    z.unknown()
+  ]).optional(),
+  start_image_url: z.union([
+    z.string(),
+    z.unknown()
+  ]).optional(),
+  elements: z.union([
+    z.array(zKlingV4Element).max(7),
+    z.unknown()
+  ]).optional()
+});
+
+/**
+ * ReferenceToVideoOutput
+ */
+export const zV4ReferenceToVideoOutput = z.object({
+  video: zFile
+});
+
+/**
+ * TextToVideoInput
+ */
+export const zV4TextToVideoInput = z.object({
+  resolution: z.enum(['720p', '1080p']).register(z.globalRegistry, {
+    description: 'Output resolution.'
+  }).optional().default('1080p'),
+  aspect_ratio: z.enum([
+    '16:9',
+    '9:16',
+    '1:1',
+    '21:9'
+  ]).register(z.globalRegistry, {
+    description: 'Aspect ratio of the generated video.'
+  }).optional().default('16:9'),
+  prompt: z.union([
+    z.string().max(26000),
+    z.unknown()
+  ]).optional(),
+  multi_prompt: z.union([
+    z.array(zKlingV4Shot).min(1),
+    z.unknown()
+  ]).optional(),
+  duration: z.int().gte(3).lte(30).register(z.globalRegistry, {
+    description: 'Video duration in seconds (3-30).'
+  }).optional().default(5)
+});
+
+/**
+ * VideoOutput
+ */
+export const zV4TextToVideoOutput = z.object({
+  video: zFile
+});

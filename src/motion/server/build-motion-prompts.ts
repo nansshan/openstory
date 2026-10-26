@@ -45,6 +45,9 @@ import {
 const NO_MUSIC_DIRECTION =
   'No BGM, no music. Generate only dialogue, environmental sounds, and action sounds.';
 
+/** Audio "off" for a model that always renders sound (Kling 4). */
+const SILENT_SOUNDSCAPE = 'Silent. No dialogue, no sound effects, no music.';
+
 /**
  * Scene-level look stated once at the top of a packed prompt. Per-shot bodies
  * then only describe action, camera, dialogue, and SFX.
@@ -134,6 +137,14 @@ export function buildMotionShotPrompt({
 
     switch (vendor) {
       case 'Kling':
+        // Kling 4 has no generate_audio switch: "off" is asked for in-prompt,
+        // like MiniMax H3. Packed clips put it in the header instead.
+        if (model === 'kling_v4' && generateAudio === false) {
+          assembled = omitSharedConstraints
+            ? fullPrompt
+            : `${fullPrompt}\n\n${SILENT_SOUNDSCAPE}`;
+          break;
+        }
         assembled = buildKlingPrompt(
           fullPrompt,
           dialogueData,
@@ -228,8 +239,9 @@ export function packedPromptFitsLimit(
   if (hardLimit === undefined) return true;
   const budget = Math.max(1, hardLimit - PACKED_PROMPT_RESERVE);
   if (packed.multiPrompt && packed.multiPrompt.length > 0) {
+    const elementBudget = Math.min(budget, packed.maxElementLength ?? budget);
     return packed.multiPrompt.every(
-      (element) => element.prompt.length <= budget
+      (element) => element.prompt.length <= elementBudget
     );
   }
   return packed.prompt.length <= budget;
@@ -237,13 +249,16 @@ export function packedPromptFitsLimit(
 
 type KlingMultiPromptElement = {
   prompt: string;
-  duration: string;
+  /** v3: the string enum `'1'`…`'15'`. v4: an integer 1–30. */
+  duration: string | number;
 };
 
 export type PackedMotionPrompt = {
   prompt: string;
   /** Kling only: structured `multi_prompt[]`. Absent on other vendors. */
   multiPrompt?: KlingMultiPromptElement[];
+  /** Per-element cap fal enforces below the whole-prompt one (Kling 4: 512). */
+  maxElementLength?: number;
 };
 
 /**
@@ -308,7 +323,7 @@ export function buildPackedMotionPrompt({
     model,
     generateAudio,
   });
-  if (model === 'kling_v3_pro') {
+  if (model === 'kling_v3_pro' || model === 'kling_v4') {
     // Kling rejects `prompt` + `multi_prompt` together, so the header has to
     // live on the first element. Later shots stay action-only.
     return {
@@ -316,8 +331,12 @@ export function buildPackedMotionPrompt({
       multiPrompt: shots.map((shot, i) => ({
         prompt:
           i === 0 ? joinPacked(header, bodies[i] ?? '') : (bodies[i] ?? ''),
-        duration: klingMultiPromptDuration(shot.durationSeconds),
+        duration:
+          model === 'kling_v4'
+            ? clampSeconds(shot.durationSeconds, 30)
+            : String(clampSeconds(shot.durationSeconds, 15)),
       })),
+      ...(model === 'kling_v4' && { maxElementLength: 512 }),
     };
   }
 
@@ -365,6 +384,8 @@ function formatPackedHeader(input: {
     parts.push(
       'overall_soundscape: Silent. No dialogue, no sound effects, no music.\nnon_diegetic_music: N/A'
     );
+  } else if (input.model === 'kling_v4' && input.generateAudio === false) {
+    parts.push(SILENT_SOUNDSCAPE);
   } else {
     parts.push(NO_MUSIC_DIRECTION);
     if (input.model === 'minimax_h3_max') {
@@ -433,10 +454,9 @@ function formatPackedShotList(
   return labeled.join('\n\n');
 }
 
-/** Kling `multi_prompt[].duration` is the string enum `'1'`…`'15'`. */
-function klingMultiPromptDuration(seconds: number): string {
-  const n = Math.min(15, Math.max(1, Math.round(seconds)));
-  return String(n);
+/** Whole seconds in 1…max, for Kling `multi_prompt[].duration`. */
+function clampSeconds(seconds: number, max: number): number {
+  return Math.min(max, Math.max(1, Math.round(seconds)));
 }
 
 // ---------------------------------------------------------------------------
