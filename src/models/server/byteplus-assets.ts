@@ -8,6 +8,7 @@
  * to complete H5 verification — out of scope here.
  */
 
+import { getLogger } from '@/platform/logger';
 import { aigcGroupName } from './byteplus-config';
 import {
   bytePlusOpenApi,
@@ -26,7 +27,36 @@ export type BytePlusAsset = {
   GroupId?: string;
   /** ISO 8601, e.g. `2026-03-20T14:24:52Z`. */
   CreateTime?: string;
+  /** Why a `Failed` asset was refused, e.g. a copyright match. */
+  Error?: { Code?: string; Message?: string };
 };
+
+/**
+ * Ark refused the asset itself (`Status: Failed`). The same media is refused
+ * every time, so callers must not retry it. The asset was already deleted so
+ * it does not hold a slot in the account pool.
+ */
+export class BytePlusAssetRefusedError extends Error {
+  constructor(
+    readonly assetId: string,
+    readonly code: string | undefined,
+    detail: string | undefined
+  ) {
+    super(
+      `BytePlus asset ${assetId} failed processing` +
+        (code || detail ? ` (${code ?? 'unknown'}): ${detail ?? ''}` : '')
+    );
+    this.name = 'BytePlusAssetRefusedError';
+  }
+}
+
+/** An OpenAPI 5xx (Cloudflare's 520 included): Ark's side, worth another poll. */
+function isTransientOpenApiError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /^BytePlus OpenAPI \w+ failed \(5\d\d\)/.test(error.message)
+  );
+}
 
 export type BytePlusAssetGroup = {
   Id?: string;
@@ -34,6 +64,8 @@ export type BytePlusAssetGroup = {
   GroupType?: string;
   CreateTime?: string;
 };
+
+const logger = getLogger(['openstory', 'ai', 'byteplus-assets']);
 
 function assetNameFor(identity: string): string {
   // CreateAsset Name is max 64 chars and is the ListAssets search key.
@@ -233,10 +265,32 @@ async function waitForAssetActive(
 
   let last: BytePlusAsset | undefined;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    last = await getAsset(config, id);
+    try {
+      last = await getAsset(config, id);
+    } catch (error) {
+      // One bad poll is one spent attempt, not the end of the wait.
+      if (!isTransientOpenApiError(error) || attempt === maxAttempts - 1) {
+        throw error;
+      }
+      await sleep(delayMs);
+      continue;
+    }
     if (last.Status === 'Active') return last;
     if (last.Status === 'Failed') {
-      throw new Error(`BytePlus asset ${id} failed processing`);
+      // A refused asset still takes a slot until deleted (#2207).
+      // Not thrown: the refusal is the error to report. The hourly sweep
+      // deletes the asset; the warning shows if the leak comes back.
+      await deleteAsset(config, id).catch((error: unknown) => {
+        logger.warn('BytePlus refused asset could not be deleted', {
+          assetId: id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
+      throw new BytePlusAssetRefusedError(
+        id,
+        last.Error?.Code,
+        last.Error?.Message?.replace(/\s*Request ID:.*$/s, '')
+      );
     }
     if (attempt < maxAttempts - 1) await sleep(delayMs);
   }
