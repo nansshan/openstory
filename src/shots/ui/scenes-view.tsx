@@ -1847,6 +1847,7 @@ export const ScenesView: React.FC<ScenesViewProps> = ({
                       </Button>
                       <CopyScriptButton sequenceId={sequenceId} />
                       <SequenceDownloadMenu
+                        sequenceId={sequenceId}
                         sequenceExport={sequenceExport}
                         draftLabel={theatreDraftLabel(shots ?? [])}
                         variant="toolbar"
